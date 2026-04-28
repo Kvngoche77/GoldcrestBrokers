@@ -8,15 +8,18 @@ declare global {
     googleTranslateElementInit?: () => void;
     google?: {
       translate: {
-        TranslateElement: new (
-          config: { pageLanguage: string; layout: any },
-          elementId: string
-        ) => void;
         TranslateElement: {
-          InlineLayout: { SIMPLE: number };
+          new (
+            config: { pageLanguage: string; layout: any },
+            elementId: string
+          ): any;
+          InlineLayout: {
+            SIMPLE: number;
+          };
         };
       };
     };
+
   }
 }
 
