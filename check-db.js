@@ -6,10 +6,20 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function checkData() {
-  console.log('Checking profiles...');
-  const { data: profiles, error: profilesError } = await supabase.from('profiles').select('id').limit(1);
-  if (profilesError) console.error('Profiles error:', profilesError);
-  else console.log(`Found profiles table`);
+  console.log('Checking investment_plans...');
+  const { data: plans, error: plansError } = await supabase.from('investment_plans').select('*');
+  if (plansError) console.error('Plans error:', JSON.stringify(plansError, null, 2));
+  else {
+    console.log(`Found ${plans?.length || 0} plans`);
+    if (plans && plans.length > 0) {
+        console.log('First plan:', plans[0].name, 'Active:', plans[0].is_active);
+    }
+  }
+
+  console.log('Checking deposit_addresses...');
+  const { data: addresses, error: addrError } = await supabase.from('deposit_addresses').select('*');
+  if (addrError) console.error('Addresses error:', JSON.stringify(addrError, null, 2));
+  else console.log(`Found ${addresses?.length || 0} addresses`);
 }
 
 checkData();

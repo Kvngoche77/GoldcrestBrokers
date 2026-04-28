@@ -155,12 +155,26 @@ export function MarketData() {
                           <td className="py-4 px-6 text-slate-500 text-sm">{idx + 1}</td>
                           <td className="py-4 px-6">
                             <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-sm font-bold text-slate-300">
-                                {coin.symbol.toUpperCase().slice(0, 2)}
+                              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center p-1.5 overflow-hidden border border-white/5">
+                                {coin.image ? (
+                                  <img 
+                                    src={coin.image} 
+                                    alt={coin.name} 
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      (e.target as HTMLImageElement).parentElement!.innerText = coin.symbol.toUpperCase().slice(0, 2);
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="text-xs font-bold text-slate-400">
+                                    {coin.symbol.toUpperCase().slice(0, 2)}
+                                  </span>
+                                )}
                               </div>
                               <div>
                                 <p className="font-semibold text-white text-sm">{coin.name}</p>
-                                <p className="text-xs text-slate-400 uppercase">{coin.symbol}</p>
+                                <p className="text-xs text-slate-400 uppercase tracking-wider">{coin.symbol}</p>
                               </div>
                             </div>
                           </td>

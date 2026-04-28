@@ -7,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Hero } from '@/components/sections/Hero';
 import { MarketTicker } from '@/components/sections/MarketTicker';
 import { MarketData } from '@/components/sections/MarketData';
+import { TradingViewChart } from '@/components/sections/TradingViewChart';
 import { InvestmentPlans } from '@/components/sections/InvestmentPlans';
 import { Testimonials } from '@/components/sections/Testimonials';
 import { ReferralSection } from '@/components/sections/ReferralSection';
@@ -66,6 +67,7 @@ export default function HomePage() {
         <Hero />
         <MarketTicker />
         <MarketData />
+        <TradingViewChart />
         <InvestmentPlans />
         <WhyUsSection />
         <ReferralSection />
