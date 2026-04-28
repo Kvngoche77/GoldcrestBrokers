@@ -106,8 +106,8 @@ ALTER TABLE investment_plans ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone can view active investment plans"
   ON investment_plans FOR SELECT
-  TO authenticated
   USING (is_active = true);
+
 
 CREATE POLICY "Admins can manage investment plans"
   ON investment_plans FOR ALL
