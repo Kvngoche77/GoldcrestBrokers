@@ -135,9 +135,21 @@ export function InvestmentPlans() {
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-3 gap-8 mb-16">
+        {/* Calculator on Top */}
+        <div className="max-w-3xl mx-auto mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            {plans.length > 0 && <ProfitCalculator plans={plans} />}
+          </motion.div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Plan cards */}
-          <div className="lg:col-span-2 grid sm:grid-cols-2 gap-4">
+          <div className="lg:col-span-3 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {isLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="glass rounded-2xl p-6">
@@ -154,7 +166,7 @@ export function InvestmentPlans() {
                   return (
                     <motion.div
                       key={plan.id}
-                      className={`relative glass rounded-2xl p-6 border card-hover transition-all ${colors.accent} ${colors.glow} ${isPopular ? 'sm:col-span-2 lg:col-span-1' : ''}`}
+                      className={`relative glass rounded-2xl p-6 border card-hover transition-all ${colors.accent} ${colors.glow}`}
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
@@ -216,17 +228,8 @@ export function InvestmentPlans() {
                   );
                 })}
           </div>
-
-          {/* Calculator */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
-            {plans.length > 0 && <ProfitCalculator plans={plans} />}
-          </motion.div>
         </div>
+
       </div>
     </section>
   );

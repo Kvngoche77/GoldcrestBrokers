@@ -110,25 +110,44 @@ export default function DepositPage() {
       ) : (
         <>
           {/* Network selection */}
-          <div className="glass rounded-2xl p-5">
-            <h2 className="font-semibold text-white mb-4">Select Payment Network</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {addresses.map((addr) => (
-                <button
-                  key={addr.network}
-                  onClick={() => setSelectedNetwork(addr.network)}
-                  className={`p-4 rounded-xl border text-left transition-all ${
-                    selectedNetwork === addr.network
-                      ? 'border-blue-500/60 bg-blue-500/10 text-white'
-                      : 'border-white/10 bg-white/[0.02] text-slate-300 hover:border-white/20'
-                  }`}
-                >
-                  <p className="font-semibold text-sm">{addr.label}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{addr.network}</p>
-                </button>
-              ))}
+          <div className="glass rounded-2xl p-6 border border-white/[0.05]">
+            <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              Select Preferred Asset
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {addresses.map((addr) => {
+                const isSelected = selectedNetwork === addr.network;
+                return (
+                  <button
+                    key={addr.network}
+                    onClick={() => setSelectedNetwork(addr.network)}
+                    className={`p-4 rounded-2xl border flex items-center gap-4 transition-all duration-300 ${
+                      isSelected
+                        ? 'border-blue-500/60 bg-blue-500/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]'
+                        : 'border-white/10 bg-white/[0.02] hover:border-white/20'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold flex-shrink-0 ${
+                      isSelected ? 'bg-blue-600 text-white' : 'bg-white/[0.05] text-slate-400'
+                    }`}>
+                      {addr.label.charAt(0)}
+                    </div>
+                    <div className="text-left">
+                      <p className={`font-bold text-sm ${isSelected ? 'text-white' : 'text-slate-200'}`}>{addr.label}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500 mt-0.5">{addr.network}</p>
+                    </div>
+                    {isSelected && (
+                      <div className="ml-auto w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
+                        <CheckCircle2 size={12} className="text-white" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
+
 
           {/* Deposit address */}
           {selectedAddress && (

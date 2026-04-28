@@ -72,8 +72,8 @@ export default function LoginPage() {
             <TrendingUp size={22} className="text-white" />
           </div>
           <span className="font-bold text-2xl">
-            <span className="text-white">Iron</span>
-            <span className="gradient-text">Gates</span>
+            <span className="text-white">Goldcrest</span>
+            <span className="gradient-text">Broker</span>
           </span>
         </Link>
 
