@@ -56,14 +56,23 @@ export function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-18">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center glow-blue group-hover:scale-110 transition-transform">
-              <TrendingUp className="w-4.5 h-4.5 text-white" size={18} />
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center glow-blue group-hover:scale-110 transition-transform duration-300">
+                <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
+              </div>
+              <div className="absolute -inset-1 bg-blue-500/20 blur-md rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <span className="font-bold text-lg tracking-tight">
-              <span className="text-white">Goldcrest</span>
-              <span className="gradient-text">Broker</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="font-bold text-xl tracking-tight leading-none text-white">
+                GOLDCREST
+              </span>
+              <span className="text-[10px] font-bold tracking-[0.2em] text-blue-400 uppercase mt-0.5">
+                Brokerage Group
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Nav */}

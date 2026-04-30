@@ -30,14 +30,20 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 mb-5">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center glow-blue">
-                <TrendingUp size={20} className="text-white" />
+            <Link href="/" className="flex items-center gap-3 mb-6 group">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center glow-blue transition-transform duration-300 group-hover:scale-110">
+                <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                </svg>
               </div>
-              <span className="font-bold text-xl">
-                <span className="text-white">Goldcrest</span>
-                <span className="gradient-text">Broker</span>
-              </span>
+              <div className="flex flex-col">
+                <span className="font-bold text-xl tracking-tight leading-none text-white">
+                  GOLDCREST
+                </span>
+                <span className="text-[10px] font-bold tracking-[0.2em] text-blue-400 uppercase mt-0.5">
+                  Brokerage Group
+                </span>
+              </div>
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs mb-6">
               A premium investment and trading platform offering asset-backed investment plans, real-time market data, and a rewarding referral program.
