@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
+    console.log('AuthContext: Fetching profile for ID:', userId);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -37,23 +38,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .maybeSingle();
       
+      if (error) {
+        console.error('AuthContext: Supabase error fetching profile:', error);
+      }
+
       if (data) {
+        console.log('AuthContext: Profile loaded successfully:', data);
         setProfile(data as Profile);
-      } else if (!error) {
-        // Try fallback creation if profile doesn't exist
-        const { data: newProfile } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            username: user?.user_metadata?.username || user?.email?.split('@')[0],
-            full_name: user?.user_metadata?.full_name || '',
-          })
-          .select()
-          .maybeSingle();
-        if (newProfile) setProfile(newProfile as Profile);
+      } else {
+        console.warn('AuthContext: No profile found for this ID');
+        if (!error) {
+          console.log('AuthContext: Attempting fallback creation...');
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              username: user?.user_metadata?.username || user?.email?.split('@')[0],
+              full_name: user?.user_metadata?.full_name || '',
+            })
+            .select()
+            .maybeSingle();
+          
+          if (createError) console.error('AuthContext: Fallback creation error:', createError);
+          if (newProfile) {
+            console.log('AuthContext: Fallback profile created:', newProfile);
+            setProfile(newProfile as Profile);
+          }
+        }
       }
     } catch (err) {
-      console.error('Error fetching profile:', err);
+      console.error('AuthContext: Unexpected error in fetchProfile:', err);
     } finally {
       setLoading(false);
     }

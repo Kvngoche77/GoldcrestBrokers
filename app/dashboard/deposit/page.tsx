@@ -24,10 +24,17 @@ export default function DepositPage() {
   const [submitted, setSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { data: addresses = [] } = useQuery({
+  const { data: addresses = [], error: addrError, isLoading: addrLoading } = useQuery({
     queryKey: ['deposit-addresses'],
-    queryFn: fetchAddresses,
+    queryFn: async () => {
+      console.log('DepositPage: Fetching addresses...');
+      const data = await fetchAddresses();
+      console.log('DepositPage: Addresses received:', data);
+      return data;
+    },
   });
+
+  if (addrError) console.error('DepositPage: Error loading addresses:', addrError);
 
   const selectedAddress = addresses.find((a) => a.network === selectedNetwork);
 
