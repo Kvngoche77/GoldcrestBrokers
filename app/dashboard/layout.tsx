@@ -75,7 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!user) return null;
 
-  const initials = profile?.full_name?.slice(0, 2).toUpperCase() ?? profile?.username?.slice(0, 2).toUpperCase() ?? 'U';
+  const initials = profile?.username?.slice(0, 2).toUpperCase() ?? profile?.full_name?.slice(0, 2).toUpperCase() ?? 'U';
 
   return (
     <div className="min-h-screen bg-[#040c18] flex">
@@ -135,7 +135,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{profile?.full_name ?? profile?.username ?? 'User'}</p>
+              <p className="text-sm font-semibold text-white truncate">@{profile?.username ?? 'User'}</p>
               <p className="text-xs text-slate-400">${Number(profile?.balance ?? 0).toFixed(2)}</p>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="hidden sm:block">
             <p className="text-sm text-slate-400">
               Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
-              <span className="text-white font-medium">{profile?.full_name ?? profile?.username ?? 'Investor'}</span>
+              <span className="text-white font-medium">{profile?.username ?? profile?.full_name ?? 'Investor'}</span>
             </p>
           </div>
           <div className="flex items-center gap-4">

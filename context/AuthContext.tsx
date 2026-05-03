@@ -30,12 +30,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .maybeSingle();
-    setProfile(data as Profile | null);
+    
+    if (data) {
+      setProfile(data as Profile);
+    } else if (!error && user) {
+      // Fallback creation
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          username: user.user_metadata?.username || user.email?.split('@')[0],
+          full_name: user.user_metadata?.full_name || '',
+        })
+        .select()
+        .maybeSingle();
+      if (newProfile) setProfile(newProfile as Profile);
+    }
   };
 
   const refreshProfile = async () => {
@@ -57,7 +72,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          // Try to fetch profile
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (existingProfile) {
+            setProfile(existingProfile as Profile);
+          } else {
+            // Trigger likely failed, try to create it manually as a fallback
+            console.log('Profile missing, attempting fallback creation...');
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
+                full_name: session.user.user_metadata?.full_name || '',
+              })
+              .select()
+              .single();
+            
+            if (!createError && newProfile) {
+              setProfile(newProfile as Profile);
+            } else {
+              setProfile(null);
+            }
+          }
         } else {
           setProfile(null);
         }

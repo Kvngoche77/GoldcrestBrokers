@@ -82,23 +82,32 @@ export default function RegisterPage() {
         return;
       }
 
+      // Small delay to allow the database trigger to complete
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Update profile with referral info
       if (authData.user && referredById) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .update({ referred_by: referredById })
           .eq('id', authData.user.id);
-        // Create referral record
-        await supabase.from('referrals').insert({
-          referrer_id: referredById,
-          referred_id: authData.user.id,
-        });
+        
+        if (updateError) {
+          console.error('Error updating referral:', updateError);
+        } else {
+          // Create referral record
+          await supabase.from('referrals').insert({
+            referrer_id: referredById,
+            referred_id: authData.user.id,
+          });
+        }
       }
 
       toast.success('Account created! Welcome to Goldcrest Broker.');
       router.push('/dashboard');
-    } catch {
-      toast.error('An unexpected error occurred');
+    } catch (err) {
+      console.error('Signup error:', err);
+      toast.error('An unexpected error occurred during signup');
     } finally {
       setIsLoading(false);
     }

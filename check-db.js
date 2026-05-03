@@ -20,6 +20,16 @@ async function checkData() {
   const { data: addresses, error: addrError } = await supabase.from('deposit_addresses').select('*');
   if (addrError) console.error('Addresses error:', JSON.stringify(addrError, null, 2));
   else console.log(`Found ${addresses?.length || 0} addresses`);
+
+  console.log('Checking profiles...');
+  const { data: profiles, error: profError } = await supabase.from('profiles').select('*');
+  if (profError) console.error('Profiles error:', JSON.stringify(profError, null, 2));
+  else {
+    console.log(`Found ${profiles?.length || 0} profiles`);
+    if (profiles && profiles.length > 0) {
+      console.log('Usernames:', profiles.map(p => p.username).join(', '));
+    }
+  }
 }
 
 checkData();

@@ -33,10 +33,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [user, profile, loading, router]);
 
-  if (loading || !profile?.is_admin) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#040c18] flex items-center justify-center">
-        <div className="text-slate-400 text-sm">Verifying admin access...</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="text-slate-400 text-sm animate-pulse">Verifying admin credentials...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile?.is_admin) {
+    return (
+      <div className="min-h-screen bg-[#040c18] flex items-center justify-center p-6">
+        <div className="glass rounded-3xl p-8 max-w-sm w-full text-center border border-red-500/20">
+          <Shield size={48} className="text-red-500 mx-auto mb-4 opacity-50" />
+          <h2 className="text-xl font-bold text-white mb-2">Access Denied</h2>
+          <p className="text-slate-400 text-sm mb-6">
+            You do not have the required administrator privileges to view this page.
+          </p>
+          <Link 
+            href="/dashboard"
+            className="block w-full py-3 bg-white/[0.05] hover:bg-white/[0.1] text-white rounded-xl transition-all font-medium text-sm"
+          >
+            Return to Dashboard
+          </Link>
+        </div>
       </div>
     );
   }

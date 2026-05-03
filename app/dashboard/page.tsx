@@ -104,8 +104,8 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
-        <p className="text-slate-400 text-sm mt-1">Track your investments and portfolio performance</p>
+        <h1 className="text-2xl font-bold text-white">Welcome back, {profile?.username ?? 'Investor'}!</h1>
+        <p className="text-slate-400 text-sm mt-1">Here&apos;s what&apos;s happening with your portfolio today.</p>
       </div>
 
       {/* Stats */}
