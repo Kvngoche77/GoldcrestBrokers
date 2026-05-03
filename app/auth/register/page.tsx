@@ -15,8 +15,11 @@ const schema = z.object({
   full_name: z.string().min(2, 'Enter your full name'),
   username: z.string().min(3, 'Username must be at least 3 characters').max(20).regex(/^[a-zA-Z0-9_]+$/, 'Only letters, numbers, and underscores'),
   email: z.string().email('Enter a valid email'),
+  phone: z.string().min(10, 'Enter a valid phone number'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirm_password: z.string(),
+  country: z.string().min(1, 'Select your country'),
+  address: z.string().min(5, 'Enter your residential address'),
   referral_code: z.string().optional(),
   terms: z.literal(true, { errorMap: () => ({ message: 'You must accept the terms' }) }),
 }).refine((d) => d.password === d.confirm_password, {
@@ -24,9 +27,30 @@ const schema = z.object({
   path: ['confirm_password'],
 });
 
+const countries = [
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'IN', name: 'India' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'SA', name: 'Saudi Arabia' },
+];
+
 type FormData = z.infer<typeof schema>;
 
 export default function RegisterPage() {
+  const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -37,11 +61,23 @@ export default function RegisterPage() {
     register,
     handleSubmit,
     watch,
+    trigger,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { referral_code: refCode },
   });
+
+  const nextStep = async () => {
+    const fields = step === 1 
+      ? ['full_name', 'username', 'email', 'phone', 'password', 'confirm_password'] 
+      : ['country', 'address', 'terms'];
+    
+    const isValid = await trigger(fields as any);
+    if (isValid) setStep(step + 1);
+  };
+
+  const prevStep = () => setStep(step - 1);
 
   const password = watch('password', '');
   const passwordStrength = password.length === 0 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : 3;
@@ -51,7 +87,6 @@ export default function RegisterPage() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      // Check if referral code exists
       let referredById: string | undefined;
       if (data.referral_code) {
         const { data: referrer } = await supabase
@@ -74,28 +109,25 @@ export default function RegisterPage() {
       });
 
       if (error) {
-        if (error.message.includes('already registered')) {
-          toast.error('This email is already registered. Please sign in.');
-        } else {
-          toast.error(error.message);
-        }
+        toast.error(error.message);
         return;
       }
 
-      // Small delay to allow the database trigger to complete
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Update profile with referral info
-      if (authData.user && referredById) {
+      if (authData.user) {
+        // Update profile with location and referral info
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ referred_by: referredById })
+          .update({ 
+            referred_by: referredById,
+            phone: data.phone,
+            country: data.country,
+            address: data.address
+          })
           .eq('id', authData.user.id);
         
-        if (updateError) {
-          console.error('Error updating referral:', updateError);
-        } else {
-          // Create referral record
+        if (!updateError && referredById) {
           await supabase.from('referrals').insert({
             referrer_id: referredById,
             referred_id: authData.user.id,
@@ -104,7 +136,7 @@ export default function RegisterPage() {
       }
 
       toast.success('Account created! Welcome to Goldcrest Broker.');
-      router.push('/dashboard');
+      router.push('/auth/kyc-onboarding');
     } catch (err) {
       console.error('Signup error:', err);
       toast.error('An unexpected error occurred during signup');
@@ -138,152 +170,144 @@ export default function RegisterPage() {
 
         <div className="glass-strong rounded-3xl p-8">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white mb-1">Create your account</h1>
-            <p className="text-slate-400 text-sm">Start investing in minutes — no experience needed</p>
+            <div className="flex items-center gap-2 mb-2">
+              {[1, 2].map((i) => (
+                <div key={i} className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-blue-500' : 'bg-white/10'}`} />
+              ))}
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-1">
+              {step === 1 ? 'Personal Details' : 'Location Details'}
+            </h1>
+            <p className="text-slate-400 text-sm">
+              {step === 1 ? 'Step 1 of 2: Let\'s get to know you' : 'Step 2 of 2: Where are you based?'}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              {/* Full Name */}
-              <div className="col-span-2">
-                <label className="text-xs font-medium text-slate-300 mb-1.5 block">Full Name</label>
-                <div className="relative">
-                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    {...register('full_name')}
-                    placeholder="John Doe"
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
-                  />
-                </div>
-                {errors.full_name && <p className="mt-1 text-xs text-red-400">{errors.full_name.message}</p>}
-              </div>
+            {step === 1 ? (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <label className="text-xs font-medium text-slate-300 mb-1.5 block">Full Name</label>
+                    <div className="relative">
+                      <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <input {...register('full_name')} placeholder="John Doe" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                    </div>
+                    {errors.full_name && <p className="mt-1 text-xs text-red-400">{errors.full_name.message}</p>}
+                  </div>
 
-              {/* Username */}
-              <div className="col-span-2">
-                <label className="text-xs font-medium text-slate-300 mb-1.5 block">Username</label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">@</span>
-                  <input
-                    {...register('username')}
-                    placeholder="johndoe"
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
-                  />
-                </div>
-                {errors.username && <p className="mt-1 text-xs text-red-400">{errors.username.message}</p>}
-              </div>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="text-xs font-medium text-slate-300 mb-1.5 block">Email Address</label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  {...register('email')}
-                  type="email"
-                  placeholder="you@example.com"
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
-                />
-              </div>
-              {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="text-xs font-medium text-slate-300 mb-1.5 block">Password</label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  {...register('password')}
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Min. 8 characters"
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-              {password && (
-                <div className="mt-2 flex gap-1">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= passwordStrength ? strengthColors[passwordStrength] : 'bg-white/10'}`} />
-                  ))}
-                  <span className="text-xs text-slate-400 ml-2">{strengthLabels[passwordStrength]}</span>
-                </div>
-              )}
-              {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>}
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="text-xs font-medium text-slate-300 mb-1.5 block">Confirm Password</label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  {...register('confirm_password')}
-                  type="password"
-                  placeholder="••••••••"
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
-                />
-              </div>
-              {errors.confirm_password && <p className="mt-1 text-xs text-red-400">{errors.confirm_password.message}</p>}
-            </div>
-
-            {/* Referral Code */}
-            <div>
-              <label className="text-xs font-medium text-slate-300 mb-1.5 block">
-                Referral Code <span className="text-slate-500">(Optional)</span>
-              </label>
-              <div className="relative">
-                <Gift size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  {...register('referral_code')}
-                  placeholder="Enter referral code"
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all uppercase"
-                />
-              </div>
-            </div>
-
-            {/* Terms */}
-            <div>
-              <label className="flex items-start gap-3 cursor-pointer">
-                <div className="relative mt-0.5">
-                  <input {...register('terms')} type="checkbox" className="sr-only peer" />
-                  <div className="w-4 h-4 rounded border border-white/20 peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all flex items-center justify-center">
-                    <Check size={10} className="text-white hidden peer-checked:block" />
+                  <div className="col-span-2">
+                    <label className="text-xs font-medium text-slate-300 mb-1.5 block">Username</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">@</span>
+                      <input {...register('username')} placeholder="johndoe" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                    </div>
+                    {errors.username && <p className="mt-1 text-xs text-red-400">{errors.username.message}</p>}
                   </div>
                 </div>
-                <span className="text-xs text-slate-400 leading-relaxed">
-                  I agree to Goldcrest Broker&apos;s{' '}
-                  <Link href="/legal/terms" className="text-blue-400 hover:text-blue-300">Terms of Service</Link>
-                  {' '}and{' '}
-                  <Link href="/legal/privacy" className="text-blue-400 hover:text-blue-300">Privacy Policy</Link>
-                </span>
-              </label>
-              {errors.terms && <p className="mt-1 text-xs text-red-400">{errors.terms.message}</p>}
-            </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue group mt-2"
-            >
-              {isLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <>
-                  Create Account
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
+                <div>
+                  <label className="text-xs font-medium text-slate-300 mb-1.5 block">Email Address</label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input {...register('email')} type="email" placeholder="you@example.com" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                  </div>
+                  {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-300 mb-1.5 block">Phone Number</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">+</span>
+                    <input {...register('phone')} placeholder="1234567890" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                  </div>
+                  {errors.phone && <p className="mt-1 text-xs text-red-400">{errors.phone.message}</p>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-300 mb-1.5 block">Password</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input {...register('password')} type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {password && (
+                    <div className="mt-2 flex gap-1">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= passwordStrength ? strengthColors[passwordStrength] : 'bg-white/10'}`} />
+                      ))}
+                    </div>
+                  )}
+                  {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-300 mb-1.5 block">Confirm Password</label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input {...register('confirm_password')} type="password" placeholder="••••••••" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                  </div>
+                  {errors.confirm_password && <p className="mt-1 text-xs text-red-400">{errors.confirm_password.message}</p>}
+                </div>
+
+                <button type="button" onClick={nextStep} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue group mt-4">
+                  Continue to Location <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-300 mb-1.5 block">Country</label>
+                  <select {...register('country')} className="w-full bg-[#060d1a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-all appearance-none">
+                    <option value="">Select Country</option>
+                    {countries.map((c) => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
+                  {errors.country && <p className="mt-1 text-xs text-red-400">{errors.country.message}</p>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-300 mb-1.5 block">Residential Address</label>
+                  <textarea {...register('address')} placeholder="Full street address, city, state" rows={3} className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all resize-none" />
+                  {errors.address && <p className="mt-1 text-xs text-red-400">{errors.address.message}</p>}
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-slate-300 mb-1.5 block">Referral Code (Optional)</label>
+                  <div className="relative">
+                    <Gift size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input {...register('referral_code')} placeholder="Enter code" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all uppercase" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input {...register('terms')} type="checkbox" className="sr-only peer" />
+                    <div className="w-4 h-4 rounded border border-white/20 peer-checked:bg-blue-600 flex items-center justify-center mt-0.5">
+                      <Check size={10} className="text-white hidden peer-checked:block" />
+                    </div>
+                    <span className="text-xs text-slate-400">I agree to the Terms and Privacy Policy</span>
+                  </label>
+                  {errors.terms && <p className="mt-1 text-xs text-red-400">{errors.terms.message}</p>}
+                </div>
+
+                <div className="flex gap-3 mt-4">
+                  <button type="button" onClick={prevStep} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-all">
+                    Back
+                  </button>
+                  <button type="submit" disabled={isLoading} className="flex-[2] py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue">
+                    {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Complete Sign Up'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-400">
-            Already have an account?{' '}
-            <Link href="/auth/login" className="text-blue-400 hover:text-blue-300 font-medium">
-              Sign in
-            </Link>
+            Already have an account? <Link href="/auth/login" className="text-blue-400 hover:text-blue-300 font-medium">Sign in</Link>
           </p>
         </div>
       </motion.div>

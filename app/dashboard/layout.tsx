@@ -6,7 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, TrendingUp, Wallet, ArrowDownToLine, ArrowUpFromLine,
-  Users, Bell, Settings, LogOut, TrendingDown, Menu, X, Shield, ShieldCheck
+  Users, Bell, Settings, LogOut, TrendingDown, Menu, X, Shield, ShieldCheck,
+  LineChart
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
@@ -16,7 +17,8 @@ import { GoogleTranslate } from '@/components/GoogleTranslate';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { href: '/dashboard/invest', label: 'Invest', icon: TrendingUp },
+  { href: '/dashboard/trade', label: 'Trade', icon: LineChart },
+  { href: '/dashboard/invest', label: 'Investments', icon: TrendingUp },
   { href: '/dashboard/deposit', label: 'Deposit', icon: ArrowDownToLine },
   { href: '/dashboard/withdraw', label: 'Withdraw', icon: ArrowUpFromLine },
   { href: '/dashboard/transactions', label: 'Transactions', icon: Wallet },

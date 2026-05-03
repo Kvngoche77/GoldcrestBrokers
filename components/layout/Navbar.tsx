@@ -14,6 +14,7 @@ import { GoogleTranslate } from '@/components/GoogleTranslate';
 
 const navLinks = [
   { href: '/#markets', label: 'Markets' },
+  { href: '/dashboard/trade', label: 'Trade' },
   { href: '/#plans', label: 'Investment Plans' },
   { href: '/#referral', label: 'Referral' },
   { href: '/#about', label: 'About' },
