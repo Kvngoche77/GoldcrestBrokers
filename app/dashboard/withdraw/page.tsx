@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowUpFromLine, Loader as Loader2, CircleCheck as CheckCircle2, Clock, Building2, Wallet } from 'lucide-react';
+import { ArrowUpFromLine, Loader as Loader2, CircleCheck as CheckCircle2, Clock, Building2, Wallet, ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
