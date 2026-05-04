@@ -167,10 +167,31 @@ export default function AdminWithdrawalsPage() {
                     <span className="text-sm font-bold text-amber-400">${w.amount.toFixed(2)}</span>
                   </td>
                   <td className="py-3.5 px-5 hidden md:table-cell">
-                    <span className="text-xs font-mono text-slate-400 truncate max-w-[140px] block">{w.wallet_address}</span>
+                    {w.wallet_address.startsWith('{') ? (
+                      <div className="text-xs space-y-0.5">
+                        {(() => {
+                          try {
+                            const bank = JSON.parse(w.wallet_address);
+                            return (
+                              <>
+                                <p className="text-white font-semibold">{bank.bank_name}</p>
+                                <p className="text-slate-400">Acc: {bank.account_number}</p>
+                                <p className="text-slate-500 text-[10px] uppercase">{bank.account_name}</p>
+                              </>
+                            );
+                          } catch {
+                            return <span className="text-red-400">Invalid Bank Data</span>;
+                          }
+                        })()}
+                      </div>
+                    ) : (
+                      <span className="text-xs font-mono text-slate-400 truncate max-w-[140px] block">{w.wallet_address}</span>
+                    )}
                   </td>
                   <td className="py-3.5 px-5 hidden lg:table-cell">
-                    <span className="text-xs text-slate-400">{w.network}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${w.network === 'Bank Transfer' ? 'bg-blue-500/10 text-blue-400' : 'bg-white/5 text-slate-400'}`}>
+                      {w.network}
+                    </span>
                   </td>
                   <td className="py-3.5 px-5 text-center">
                     <span className={statusColors[w.status] ?? 'badge-grey'}>{w.status}</span>

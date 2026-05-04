@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Copy, CircleCheck as CheckCircle2, Clock, Loader as Loader2, ArrowDownToLine } from 'lucide-react';
+import { Copy, CircleCheck as CheckCircle2, Clock, Loader as Loader2, ArrowDownToLine, Building2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
@@ -24,7 +24,7 @@ export default function DepositPage() {
   const [submitted, setSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const { data: addresses = [], error: addrError, isLoading: addrLoading } = useQuery({
+  const { data: dbAddresses = [], error: addrError, isLoading: addrLoading } = useQuery({
     queryKey: ['deposit-addresses'],
     queryFn: async () => {
       console.log('DepositPage: Fetching addresses...');
@@ -34,9 +34,15 @@ export default function DepositPage() {
     },
   });
 
+  const addresses = [
+    ...dbAddresses,
+    { network: 'BANK', label: 'Bank Transfer', address: 'COMING_SOON', is_active: true, id: 'bank-manual' }
+  ];
+
   if (addrError) console.error('DepositPage: Error loading addresses:', addrError);
 
   const selectedAddress = addresses.find((a) => a.network === selectedNetwork);
+  const isBank = selectedNetwork === 'BANK';
 
   const copyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
@@ -46,6 +52,7 @@ export default function DepositPage() {
   };
 
   const handleSubmit = async () => {
+    if (isBank) return; // Prevent submission for bank
     if (!amount || Number(amount) < 50) {
       toast.error('Minimum deposit is $50');
       return;
@@ -83,7 +90,7 @@ export default function DepositPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Deposit Funds</h1>
-        <p className="text-slate-400 text-sm mt-1">Send crypto to the address below and confirm your deposit</p>
+        <p className="text-slate-400 text-sm mt-1">Select a payment method and follow the instructions</p>
       </div>
 
       {submitted ? (
@@ -120,11 +127,12 @@ export default function DepositPage() {
           <div className="glass rounded-2xl p-6 border border-white/[0.05]">
             <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              Select Preferred Asset
+              Select Payment Method
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {addresses.map((addr) => {
                 const isSelected = selectedNetwork === addr.network;
+                const isBankItem = addr.network === 'BANK';
                 return (
                   <button
                     key={addr.network}
@@ -138,11 +146,11 @@ export default function DepositPage() {
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold flex-shrink-0 ${
                       isSelected ? 'bg-blue-600 text-white' : 'bg-white/[0.05] text-slate-400'
                     }`}>
-                      {addr.label.charAt(0)}
+                      {isBankItem ? <Building2 size={20} /> : addr.label.charAt(0)}
                     </div>
                     <div className="text-left">
                       <p className={`font-bold text-sm ${isSelected ? 'text-white' : 'text-slate-200'}`}>{addr.label}</p>
-                      <p className="text-[10px] uppercase tracking-widest text-slate-500 mt-0.5">{addr.network}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500 mt-0.5">{isBankItem ? 'Direct Bank' : addr.network}</p>
                     </div>
                     {isSelected && (
                       <div className="ml-auto w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
@@ -156,40 +164,58 @@ export default function DepositPage() {
           </div>
 
 
-          {/* Deposit address */}
+          {/* Deposit address / Coming Soon */}
           {selectedAddress && (
             <motion.div
               className="glass rounded-2xl p-5"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <h2 className="font-semibold text-white mb-4">Send to Address</h2>
-              <div className="bg-white/[0.03] rounded-xl p-6 border border-white/[0.05] mb-4 text-center flex flex-col items-center">
-                <div className="bg-white p-3 rounded-xl inline-block mb-6 shadow-xl border border-white/20">
-                  <QRCodeSVG value={selectedAddress.address} size={180} level="H" />
-                </div>
-                <div className="w-full text-left">
-                  <p className="text-xs text-slate-400 mb-2">Wallet Address ({selectedAddress.label})</p>
-                  <div className="flex items-center gap-3">
-                    <p className="text-sm text-white font-mono break-all flex-1 bg-black/20 p-2 rounded-lg">{selectedAddress.address}</p>
-                    <button
-                      onClick={() => copyAddress(selectedAddress.address)}
-                      className="p-3 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 transition-colors flex-shrink-0"
-                    >
-                      {copied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
-                    </button>
+              {isBank ? (
+                <div className="text-center py-10 px-6">
+                  <div className="w-16 h-16 bg-blue-600/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                    <Building2 size={32} className="text-blue-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Bank Transfer Coming Soon</h3>
+                  <p className="text-slate-400 text-sm max-w-sm mx-auto mb-6">
+                    We are currently finalizing our corporate banking setup. Direct bank deposits will be available shortly. In the meantime, please use our crypto deposit options.
+                  </p>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-400 text-xs">
+                    <AlertCircle size={14} />
+                    <span>Estimated availability: Next 7-14 days</span>
                   </div>
                 </div>
-              </div>
-              <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-xs text-amber-400 flex gap-2">
-                <span className="flex-shrink-0">!</span>
-                <span>Only send {selectedAddress.label} to this address. Sending other assets will result in permanent loss.</span>
-              </div>
+              ) : (
+                <>
+                  <h2 className="font-semibold text-white mb-4">Send to Address</h2>
+                  <div className="bg-white/[0.03] rounded-xl p-6 border border-white/[0.05] mb-4 text-center flex flex-col items-center">
+                    <div className="bg-white p-3 rounded-xl inline-block mb-6 shadow-xl border border-white/20">
+                      <QRCodeSVG value={selectedAddress.address} size={180} level="H" />
+                    </div>
+                    <div className="w-full text-left">
+                      <p className="text-xs text-slate-400 mb-2">Wallet Address ({selectedAddress.label})</p>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm text-white font-mono break-all flex-1 bg-black/20 p-2 rounded-lg">{selectedAddress.address}</p>
+                        <button
+                          onClick={() => copyAddress(selectedAddress.address)}
+                          className="p-3 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 transition-colors flex-shrink-0"
+                        >
+                          {copied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-xs text-amber-400 flex gap-2">
+                    <span className="flex-shrink-0">!</span>
+                    <span>Only send {selectedAddress.label} to this address. Sending other assets will result in permanent loss.</span>
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
 
           {/* Confirmation form */}
-          {selectedNetwork && (
+          {selectedNetwork && !isBank && (
             <motion.div
               className="glass rounded-2xl p-5 space-y-4"
               initial={{ opacity: 0, y: 10 }}

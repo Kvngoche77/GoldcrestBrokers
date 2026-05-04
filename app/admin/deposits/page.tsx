@@ -182,7 +182,9 @@ export default function AdminDepositsPage() {
                     <span className="text-xs font-mono text-slate-400 truncate max-w-[120px] block">{dep.reference || '—'}</span>
                   </td>
                   <td className="py-3.5 px-5 hidden lg:table-cell">
-                    <span className="text-xs text-slate-400">{(dep.metadata?.network as string) ?? '—'}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${dep.metadata?.network === 'BANK' ? 'bg-blue-500/10 text-blue-400' : 'bg-white/5 text-slate-400'}`}>
+                      {(dep.metadata?.network as string) ?? '—'}
+                    </span>
                   </td>
                   <td className="py-3.5 px-5 text-center">
                     <span className={statusColors[dep.status] ?? 'badge-grey'}>{dep.status}</span>

@@ -3,17 +3,18 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowUpFromLine, Loader as Loader2, CircleCheck as CheckCircle2, Clock } from 'lucide-react';
+import { ArrowUpFromLine, Loader as Loader2, CircleCheck as CheckCircle2, Clock, Building2, Wallet } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
-import type { WithdrawalRequest } from '@/types';
+import type { WithdrawalRequest, BankDetails } from '@/types';
 
 const networks = [
-  { value: 'USDT_TRC20', label: 'USDT (TRC20)' },
-  { value: 'USDT_ERC20', label: 'USDT (ERC20)' },
-  { value: 'BTC', label: 'Bitcoin (BTC)' },
-  { value: 'ETH', label: 'Ethereum (ETH)' },
+  { value: 'USDT_TRC20', label: 'USDT (TRC20)', type: 'crypto' },
+  { value: 'USDT_ERC20', label: 'USDT (ERC20)', type: 'crypto' },
+  { value: 'BTC', label: 'Bitcoin (BTC)', type: 'crypto' },
+  { value: 'ETH', label: 'Ethereum (ETH)', type: 'crypto' },
+  { value: 'BANK', label: 'Bank Transfer', type: 'bank' },
 ];
 
 export default function WithdrawPage() {
@@ -21,8 +22,18 @@ export default function WithdrawPage() {
   const [amount, setAmount] = useState('');
   const [wallet, setWallet] = useState('');
   const [network, setNetwork] = useState('USDT_TRC20');
+  
+  // Bank fields
+  const [bankName, setBankName] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [swiftCode, setSwiftCode] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  const selectedNetwork = networks.find(n => n.value === network);
+  const isBank = selectedNetwork?.type === 'bank';
 
   const { data: history = [], refetch } = useQuery({
     queryKey: ['withdrawals', profile?.id],
@@ -42,16 +53,33 @@ export default function WithdrawPage() {
   const handleWithdraw = async () => {
     const amt = Number(amount);
     if (!amt || amt < 10) { toast.error('Minimum withdrawal is $10'); return; }
-    if (!wallet.trim()) { toast.error('Enter your wallet address'); return; }
     if (amt > Number(profile?.balance ?? 0)) { toast.error('Insufficient balance'); return; }
+
+    let destination = '';
+    if (isBank) {
+      if (!bankName || !accountName || !accountNumber) {
+        toast.error('Please fill in all required bank details');
+        return;
+      }
+      const bankDetails: BankDetails = {
+        bank_name: bankName,
+        account_name: accountName,
+        account_number: accountNumber,
+        swift_code: swiftCode,
+      };
+      destination = JSON.stringify(bankDetails);
+    } else {
+      if (!wallet.trim()) { toast.error('Enter your wallet address'); return; }
+      destination = wallet.trim();
+    }
 
     setLoading(true);
     try {
       const { error } = await supabase.from('withdrawal_requests').insert({
         user_id: profile!.id,
         amount: amt,
-        wallet_address: wallet.trim(),
-        network,
+        wallet_address: destination,
+        network: selectedNetwork?.label || network,
         status: 'pending',
       });
       if (error) throw error;
@@ -65,14 +93,16 @@ export default function WithdrawPage() {
         type: 'withdrawal',
         amount: amt,
         status: 'pending',
-        description: `Withdrawal request — ${network}`,
+        description: `Withdrawal request — ${selectedNetwork?.label || network}`,
+        metadata: isBank ? { bank_details: { bank_name: bankName, account_name: accountName, account_number: accountNumber, swift_code: swiftCode } } : { wallet_address: destination, network }
       });
 
       await refreshProfile();
       refetch();
       setSubmitted(true);
       toast.success('Withdrawal request submitted!');
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error('Failed to submit withdrawal');
     } finally {
       setLoading(false);
@@ -108,51 +138,119 @@ export default function WithdrawPage() {
         </motion.div>
       ) : (
         <div className="glass rounded-2xl p-6 space-y-5">
-          <h2 className="font-semibold text-white">Withdrawal Request</h2>
+          <h2 className="font-semibold text-white flex items-center gap-2">
+            <ArrowUpFromLine size={18} className="text-blue-400" />
+            Withdrawal Request
+          </h2>
 
-          <div>
-            <label className="text-xs text-slate-400 mb-1.5 block">Network</label>
-            <select
-              value={network}
-              onChange={(e) => setNetwork(e.target.value)}
-              className="w-full bg-[#0a1628] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60"
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-slate-400 mb-1.5 block">Withdrawal Method</label>
+              <div className="relative">
+                <select
+                  value={network}
+                  onChange={(e) => setNetwork(e.target.value)}
+                  className="w-full bg-[#0a1628] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60 appearance-none transition-all"
+                >
+                  {networks.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                  {isBank ? <Building2 size={16} /> : <Wallet size={16} />}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1.5 block">Amount (USD)</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Minimum $10"
+                className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
+              />
+            </div>
+          </div>
+
+          {isBank ? (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="space-y-4 pt-2"
             >
-              {networks.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}
-            </select>
-          </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">Bank Name</label>
+                  <input
+                    type="text"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder="e.g. JP Morgan Chase"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">Account Name</label>
+                  <input
+                    type="text"
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    placeholder="Full name on account"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-all"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">Account Number / IBAN</label>
+                  <input
+                    type="text"
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    placeholder="Enter account number"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">SWIFT / BIC / Routing (Optional)</label>
+                  <input
+                    type="text"
+                    value={swiftCode}
+                    onChange={(e) => setSwiftCode(e.target.value)}
+                    placeholder="Bank routing code"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-all"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="pt-2"
+            >
+              <label className="text-xs text-slate-400 mb-1.5 block">Wallet Address</label>
+              <input
+                type="text"
+                value={wallet}
+                onChange={(e) => setWallet(e.target.value)}
+                placeholder={`Enter your ${selectedNetwork?.label} address`}
+                className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all font-mono"
+              />
+            </motion.div>
+          )}
 
-          <div>
-            <label className="text-xs text-slate-400 mb-1.5 block">Amount (USD)</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Minimum $10"
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-400 mb-1.5 block">Wallet Address</label>
-            <input
-              type="text"
-              value={wallet}
-              onChange={(e) => setWallet(e.target.value)}
-              placeholder="Enter your wallet address"
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all font-mono"
-            />
-          </div>
-
-          <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-xs text-amber-400">
-            Withdrawals are processed within 24 hours. Ensure your wallet address is correct — funds cannot be recovered.
+          <div className="p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 text-[11px] text-blue-400 flex gap-2">
+            <span className="flex-shrink-0">ℹ️</span>
+            <span>Withdrawals are processed within 24 hours. Ensure all details are correct — funds cannot be recovered if sent to the wrong destination.</span>
           </div>
 
           <button
             onClick={handleWithdraw}
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue"
+            className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue"
           >
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <><ArrowUpFromLine size={16} /> Request Withdrawal</>}
+            {loading ? <Loader2 size={20} className="animate-spin" /> : <><ArrowUpFromLine size={20} /> Request Withdrawal</>}
           </button>
         </div>
       )}

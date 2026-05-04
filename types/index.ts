@@ -64,11 +64,20 @@ export type Transaction = {
   updated_at: string;
 };
 
+export type BankDetails = {
+  bank_name: string;
+  account_name: string;
+  account_number: string;
+  routing_number?: string;
+  swift_code?: string;
+  iban?: string;
+};
+
 export type WithdrawalRequest = {
   id: string;
   user_id: string;
   amount: number;
-  wallet_address: string;
+  wallet_address: string; // Used for both crypto address and JSON-stringified bank details
   network: string;
   status: 'pending' | 'approved' | 'rejected' | 'processing' | 'completed';
   admin_note: string;
