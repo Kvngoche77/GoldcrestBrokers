@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export function TradePanel() {
   const { selectedMarket, orderPrice, orderAmount, setOrderPrice, setOrderAmount } = useTradeStore();
