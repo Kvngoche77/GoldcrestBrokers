@@ -1,64 +1,14 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { useTradeStore } from '@/hooks/use-trade-store';
 
-declare global {
-  interface Window {
-    TradingView: any;
-  }
-}
-
 export function TradingChart() {
-  const containerRef = useRef<HTMLDivElement>(null);
   const { selectedMarket } = useTradeStore();
-  const chartId = `tradingview_${selectedMarket.symbol.toLowerCase()}`;
-
-  useEffect(() => {
-    // Clear previous widget
-    if (containerRef.current) {
-      containerRef.current.innerHTML = '';
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      "autosize": true,
-      "symbol": `BINANCE:${selectedMarket.symbol}`,
-      "interval": "D",
-      "timezone": "Etc/UTC",
-      "theme": "dark",
-      "style": "1",
-      "locale": "en",
-      "enable_publishing": false,
-      "allow_symbol_change": false,
-      "calendar": false,
-      "support_host": "https://www.tradingview.com",
-      "backgroundColor": "rgba(11, 14, 17, 1)",
-      "gridColor": "rgba(30, 35, 41, 1)",
-      "hide_top_toolbar": false,
-      "hide_side_toolbar": false,
-      "save_image": false,
-      "container_id": chartId
-    });
-    
-    const widgetContainer = document.createElement('div');
-    widgetContainer.id = chartId;
-    widgetContainer.className = "h-full w-full";
-    
-    if (containerRef.current) {
-      containerRef.current.appendChild(widgetContainer);
-      containerRef.current.appendChild(script);
-    }
-
-    return () => {
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
-    };
-  }, [selectedMarket, chartId]);
+  
+  // Using an iframe for the Advanced Chart is more reliable in Next.js/React
+  // than script injection, as it avoids hydration and script execution issues.
+  const chartUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_762c4&symbol=BINANCE:${selectedMarket.symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=localhost&utm_medium=widget&utm_campaign=chart&utm_term=BINANCE:${selectedMarket.symbol}`;
 
   return (
     <div className="flex flex-col h-full bg-[#0b0e11] overflow-hidden">
@@ -68,7 +18,14 @@ export function TradingChart() {
           <span className="text-[12px] text-[#848e9c] hover:text-[#eaecef] cursor-pointer font-medium h-full flex items-center">Depth</span>
         </div>
       </div>
-      <div ref={containerRef} className="flex-1 w-full tradingview-widget-container" />
+      <div className="flex-1 w-full relative">
+        <iframe
+          key={selectedMarket.symbol}
+          src={chartUrl}
+          className="w-full h-full border-none"
+          allowFullScreen
+        />
+      </div>
     </div>
   );
 }

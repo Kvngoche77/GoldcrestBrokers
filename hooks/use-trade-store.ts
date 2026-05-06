@@ -14,7 +14,7 @@ interface TradeState {
   setSelectedMarket: (market: Market) => void;
   setOrderPrice: (price: string) => void;
   setOrderAmount: (amount: string) => void;
-  updateMarketData: () => void;
+  updateMarketData: () => Promise<void>;
 }
 
 export const useTradeStore = create<TradeState>((set, get) => ({
@@ -24,37 +24,75 @@ export const useTradeStore = create<TradeState>((set, get) => ({
   orderPrice: markets[0].price.toString(),
   orderAmount: '',
 
-  setSelectedMarket: (market) => {
+  setSelectedMarket: async (market) => {
     set({ 
       selectedMarket: market,
-      orderBook: getMockOrderBook(market.price),
-      recentTrades: getMockTrades(market.price),
       orderPrice: market.price.toString()
     });
+    // Immediately fetch real data for the new market
+    const { updateMarketData } = get();
+    await updateMarketData();
   },
 
   setOrderPrice: (price) => set({ orderPrice: price }),
   setOrderAmount: (amount) => set({ orderAmount: amount }),
 
-  updateMarketData: () => {
+  updateMarketData: async () => {
     const { selectedMarket } = get();
-    // Simulate real-time updates
-    const newPrice = selectedMarket.price + (Math.random() - 0.5) * 2;
-    const updatedMarket = { ...selectedMarket, price: parseFloat(newPrice.toFixed(2)) };
-    
-    set({
-      selectedMarket: updatedMarket,
-      orderBook: getMockOrderBook(newPrice),
-      recentTrades: [
-        {
-          id: Math.random().toString(36).substring(7),
-          price: parseFloat(newPrice.toFixed(2)),
-          amount: parseFloat((Math.random() * 0.1).toFixed(4)),
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
-          side: Math.random() > 0.5 ? 'buy' : 'sell',
-        },
-        ...get().recentTrades.slice(0, 19),
-      ],
-    });
+    const symbol = selectedMarket.symbol;
+
+    try {
+      // Fetch real ticker data from Binance
+      const tickerRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+      const ticker = await tickerRes.json();
+
+      // Fetch real order book data
+      const depthRes = await fetch(`https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=20`);
+      const depth = await depthRes.json();
+
+      // Fetch real recent trades
+      const tradesRes = await fetch(`https://api.binance.com/api/v3/trades?symbol=${symbol}&limit=20`);
+      const trades = await tradesRes.json();
+
+      if (ticker && depth && trades) {
+        set({
+          selectedMarket: {
+            ...selectedMarket,
+            price: parseFloat(ticker.lastPrice),
+            change24h: parseFloat(ticker.priceChangePercent),
+            high24h: parseFloat(ticker.highPrice),
+            low24h: parseFloat(ticker.lowPrice),
+            volume24h: parseFloat(ticker.volume),
+          },
+          orderBook: {
+            asks: depth.asks.map((a: any) => ({
+              price: parseFloat(a[0]),
+              amount: parseFloat(a[1]),
+              total: parseFloat(a[0]) * parseFloat(a[1])
+            })),
+            bids: depth.bids.map((b: any) => ({
+              price: parseFloat(b[0]),
+              amount: parseFloat(b[1]),
+              total: parseFloat(b[0]) * parseFloat(b[1])
+            }))
+          },
+          recentTrades: trades.map((t: any) => ({
+            id: t.id.toString(),
+            price: parseFloat(t.price),
+            amount: parseFloat(t.qty),
+            time: new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
+            side: t.isBuyerMaker ? 'sell' : 'buy' // in Binance API isBuyerMaker=true means sell order hit bid
+          }))
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch real-time market data:', error);
+      // Fallback to mock data if API fails
+      const newPrice = selectedMarket.price + (Math.random() - 0.5) * 2;
+      set({
+        selectedMarket: { ...selectedMarket, price: parseFloat(newPrice.toFixed(2)) },
+        orderBook: getMockOrderBook(newPrice),
+      });
+    }
   },
 }));
