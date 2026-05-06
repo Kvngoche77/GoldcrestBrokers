@@ -55,7 +55,7 @@ export function TradingChart() {
       },
     };
 
-    const chart = createChart(chartContainerRef.current, {
+    const chart: any = createChart(chartContainerRef.current, {
       ...chartOptions,
       width: chartContainerRef.current.clientWidth,
       height: chartContainerRef.current.clientHeight,
@@ -63,7 +63,7 @@ export function TradingChart() {
     
     chartRef.current = chart;
 
-    const candlestickSeries = chart.addCandlestickSeries({
+    const candlestickSeries: any = chart.addCandlestickSeries({
       upColor: '#2ebd85',
       downColor: '#f6465d',
       borderVisible: false,
