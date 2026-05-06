@@ -3,11 +3,23 @@
 import React, { useEffect, useRef } from 'react';
 import { useTradeStore } from '@/hooks/use-trade-store';
 
+declare global {
+  interface Window {
+    TradingView: any;
+  }
+}
+
 export function TradingChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { selectedMarket } = useTradeStore();
+  const chartId = `tradingview_${selectedMarket.symbol.toLowerCase()}`;
 
   useEffect(() => {
+    // Clear previous widget
+    if (containerRef.current) {
+      containerRef.current.innerHTML = '';
+    }
+
     const script = document.createElement('script');
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
     script.type = 'text/javascript';
@@ -29,15 +41,14 @@ export function TradingChart() {
       "hide_top_toolbar": false,
       "hide_side_toolbar": false,
       "save_image": false,
-      "container_id": "tradingview_advanced_chart"
+      "container_id": chartId
     });
     
+    const widgetContainer = document.createElement('div');
+    widgetContainer.id = chartId;
+    widgetContainer.className = "h-full w-full";
+    
     if (containerRef.current) {
-      containerRef.current.innerHTML = '';
-      const widgetContainer = document.createElement('div');
-      widgetContainer.id = 'tradingview_advanced_chart';
-      widgetContainer.style.height = '100%';
-      widgetContainer.style.width = '100%';
       containerRef.current.appendChild(widgetContainer);
       containerRef.current.appendChild(script);
     }
@@ -47,15 +58,17 @@ export function TradingChart() {
         containerRef.current.innerHTML = '';
       }
     };
-  }, [selectedMarket]);
+  }, [selectedMarket, chartId]);
 
   return (
     <div className="flex flex-col h-full bg-[#0b0e11] overflow-hidden">
       <div className="h-10 border-b border-[#1e2329] flex items-center px-4 gap-4 bg-[#161a1e]">
-        <span className="text-[12px] font-bold text-[#f0b90b] border-b-2 border-[#f0b90b] h-full flex items-center">Chart</span>
-        <span className="text-[12px] text-[#848e9c] hover:text-[#eaecef] cursor-pointer font-medium">Depth</span>
+        <div className="flex items-center gap-6 h-full">
+          <span className="text-[12px] font-bold text-[#f0b90b] border-b-2 border-[#f0b90b] h-full flex items-center cursor-pointer">Chart</span>
+          <span className="text-[12px] text-[#848e9c] hover:text-[#eaecef] cursor-pointer font-medium h-full flex items-center">Depth</span>
+        </div>
       </div>
-      <div ref={containerRef} className="flex-1 w-full" />
+      <div ref={containerRef} className="flex-1 w-full tradingview-widget-container" />
     </div>
   );
 }
