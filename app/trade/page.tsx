@@ -21,35 +21,34 @@ export default function TradePage() {
   }, [updateMarketData]);
 
   return (
-    <div className="flex flex-col h-screen bg-[#0b0e11] text-[#eaecef] overflow-hidden selection:bg-[#f0b90b]/30">
-      {/* Top Navbar */}
+    <div className="flex flex-col h-screen bg-[#0b0e11] text-[#eaecef] overflow-hidden selection:bg-[#f0b90b]/30 font-sans">
       <TradingHeader />
       
       <main className="flex-1 grid grid-cols-[280px_1fr_320px] gap-[1px] bg-[#1e2329] overflow-hidden border-t border-[#1e2329]">
-        {/* Left Sidebar: Market Watchlist */}
+        {/* Left sidebar: Market watchlist */}
         <div className="bg-[#0b0e11] flex flex-col min-h-0">
           <MarketWatch />
         </div>
 
-        {/* Center Section: Chart & Orders */}
+        {/* Center: Main candlestick chart & Bottom section: Orders */}
         <div className="flex flex-col min-h-0 gap-[1px]">
-          <div className="flex-[2] bg-[#0b0e11] min-h-0">
+          <div className="flex-[2.5] bg-[#0b0e11] min-h-0 relative">
             <TradingChart />
           </div>
-          <div className="h-[320px] bg-[#0b0e11] min-h-0">
+          <div className="flex-1 bg-[#0b0e11] min-h-0 border-t border-[#1e2329]">
             <UserOrders />
           </div>
         </div>
 
-        {/* Right Sidebar: Order Book, Recent Trades & Trade Panel */}
+        {/* Right sidebar: Order Book, Recent Trades, and Bottom-right: Trade Panel */}
         <div className="flex flex-col min-h-0 gap-[1px]">
-          <div className="flex-1 bg-[#0b0e11] min-h-0">
+          <div className="flex-[1.5] bg-[#0b0e11] min-h-0">
             <OrderBook />
           </div>
-          <div className="h-[200px] bg-[#0b0e11] min-h-0">
+          <div className="h-[200px] bg-[#0b0e11] min-h-0 border-t border-[#1e2329]">
             <RecentTrades />
           </div>
-          <div className="h-[380px] bg-[#0b0e11] min-h-0">
+          <div className="h-[360px] bg-[#0b0e11] min-h-0 border-t border-[#1e2329]">
             <TradePanel />
           </div>
         </div>
