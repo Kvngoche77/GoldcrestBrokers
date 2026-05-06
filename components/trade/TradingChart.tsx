@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { createChart, ColorType, ISeriesApi, UTCTimestamp } from 'lightweight-charts';
+import { createChart, ColorType, ISeriesApi, UTCTimestamp, CrosshairMode, LineStyle } from 'lightweight-charts';
 import { useTradeStore } from '@/hooks/use-trade-store';
 
 export function TradingChart() {
@@ -13,7 +13,7 @@ export function TradingChart() {
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    const chartOptions = {
+    const chartOptions: any = {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#848e9c',
@@ -24,16 +24,16 @@ export function TradingChart() {
         horzLines: { color: '#1e2329' },
       },
       crosshair: {
-        mode: 1,
+        mode: CrosshairMode.Normal,
         vertLine: {
-          width: 1,
+          width: 1 as any,
           color: '#5d6673',
-          style: 3,
+          style: LineStyle.LargeDashed,
         },
         horzLine: {
-          width: 1,
+          width: 1 as any,
           color: '#5d6673',
-          style: 3,
+          style: LineStyle.LargeDashed,
         },
       },
       rightPriceScale: {
