@@ -10,48 +10,63 @@ export function TradingHeader() {
   const isPositive = selectedMarket.change24h >= 0;
 
   return (
-    <header className="h-16 bg-[#161a1e] border-b border-[#1e2329] flex items-center px-4 gap-8">
-      <div className="flex items-center gap-2">
-        <h1 className="text-xl font-bold text-white">{selectedMarket.symbol}</h1>
-        <div className={cn(
-          "px-2 py-0.5 rounded text-xs font-medium",
-          isPositive ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-        )}>
-          {isPositive ? '+' : ''}{selectedMarket.change24h}%
+    <header className="h-[64px] bg-[#161a1e] flex items-center px-4 gap-6 select-none border-b border-[#1e2329]">
+      <div className="flex items-center gap-3 pr-6 border-r border-[#1e2329] h-8">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xl font-bold text-[#eaecef]">{selectedMarket.baseAsset}</span>
+          <span className="text-xl font-bold text-[#848e9c]">/{selectedMarket.quoteAsset}</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
-        <div>
-          <p className="text-xs text-gray-400">Price</p>
-          <p className={cn(
-            "text-sm font-semibold",
-            isPositive ? "text-green-500" : "text-red-500"
+      <div className="flex items-center gap-8">
+        <div className="flex flex-col">
+          <span className={cn(
+            "text-lg font-bold font-mono tracking-tight",
+            isPositive ? "text-[#0ecb81]" : "text-[#f6465d]"
           )}>
-            {selectedMarket.price.toLocaleString()} <span className="text-[10px] text-gray-500">{selectedMarket.quoteAsset}</span>
-          </p>
+            {selectedMarket.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </span>
+          <span className="text-xs text-[#eaecef] font-medium leading-none">
+            ${selectedMarket.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </span>
         </div>
 
-        <div>
-          <p className="text-xs text-gray-400">24h High</p>
-          <p className="text-sm font-medium text-white">{selectedMarket.high24h.toLocaleString()}</p>
+        <div className="flex flex-col">
+          <span className="text-[11px] text-[#848e9c] font-medium uppercase leading-tight">24h Change</span>
+          <span className={cn(
+            "text-xs font-bold font-mono mt-0.5",
+            isPositive ? "text-[#0ecb81]" : "text-[#f6465d]"
+          )}>
+            {isPositive ? '+' : ''}{selectedMarket.change24h.toFixed(2)}%
+          </span>
         </div>
 
-        <div>
-          <p className="text-xs text-gray-400">24h Low</p>
-          <p className="text-sm font-medium text-white">{selectedMarket.low24h.toLocaleString()}</p>
+        <div className="flex flex-col">
+          <span className="text-[11px] text-[#848e9c] font-medium uppercase leading-tight">24h High</span>
+          <span className="text-xs font-bold font-mono text-[#eaecef] mt-0.5">{selectedMarket.high24h.toLocaleString()}</span>
         </div>
 
-        <div>
-          <p className="text-xs text-gray-400">24h Volume({selectedMarket.baseAsset})</p>
-          <p className="text-sm font-medium text-white">{selectedMarket.volume24h.toLocaleString()}</p>
+        <div className="flex flex-col">
+          <span className="text-[11px] text-[#848e9c] font-medium uppercase leading-tight">24h Low</span>
+          <span className="text-xs font-bold font-mono text-[#eaecef] mt-0.5">{selectedMarket.low24h.toLocaleString()}</span>
+        </div>
+
+        <div className="flex flex-col">
+          <span className="text-[11px] text-[#848e9c] font-medium uppercase leading-tight">24h Volume({selectedMarket.baseAsset})</span>
+          <span className="text-xs font-bold font-mono text-[#eaecef] mt-0.5">{selectedMarket.volume24h.toLocaleString()}</span>
+        </div>
+
+        <div className="flex flex-col">
+          <span className="text-[11px] text-[#848e9c] font-medium uppercase leading-tight">24h Volume({selectedMarket.quoteAsset})</span>
+          <span className="text-xs font-bold font-mono text-[#eaecef] mt-0.5">{(selectedMarket.volume24h * selectedMarket.price / 1000000).toFixed(2)}M</span>
         </div>
       </div>
 
       <div className="ml-auto flex items-center gap-4">
-        {/* Placeholder for user balance or other info */}
-        <div className="text-xs text-gray-400">
-          Spot Wallet: <span className="text-white">12,450.00 USDT</span>
+        <div className="h-8 w-px bg-[#1e2329]" />
+        <div className="flex flex-col items-end">
+          <span className="text-[11px] text-[#848e9c] uppercase font-bold tracking-wider">Spot Wallet</span>
+          <span className="text-sm font-bold text-[#f0b90b] font-mono">12,450.00 USDT</span>
         </div>
       </div>
     </header>

@@ -28,8 +28,7 @@ export function TradePanel() {
 
   const handlePercentClick = (val: number) => {
     setPercent(val);
-    // In a real app, this would calculate based on user balance
-    const mockBalance = 10000; // 10k USDT
+    const mockBalance = 10000;
     if (val > 0) {
       const calculatedAmount = (mockBalance * (val / 100)) / parseFloat(orderPrice);
       setOrderAmount(calculatedAmount.toFixed(4));
@@ -39,144 +38,135 @@ export function TradePanel() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#161a1e] p-4">
-      <Tabs defaultValue="buy" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-[#1e2329] p-1 h-10">
-          <TabsTrigger 
-            value="buy" 
-            className="data-[state=active]:bg-[#2ebd85] data-[state=active]:text-white text-gray-400 text-xs font-bold"
-          >
-            Buy
-          </TabsTrigger>
-          <TabsTrigger 
-            value="sell" 
-            className="data-[state=active]:bg-[#f6465d] data-[state=active]:text-white text-gray-400 text-xs font-bold"
-          >
-            Sell
-          </TabsTrigger>
-        </TabsList>
+    <div className="flex flex-col h-full bg-[#161a1e] p-3 select-none">
+      <div className="flex gap-1 mb-4">
+        <button 
+          onClick={() => setOrderType('limit')}
+          className={cn(
+            "text-[12px] font-bold px-2 py-1 rounded transition-colors",
+            orderType === 'limit' ? "bg-[#1e2329] text-[#f0b90b]" : "text-[#848e9c] hover:text-[#eaecef]"
+          )}
+        >
+          Limit
+        </button>
+        <button 
+          onClick={() => setOrderType('market')}
+          className={cn(
+            "text-[12px] font-bold px-2 py-1 rounded transition-colors",
+            orderType === 'market' ? "bg-[#1e2329] text-[#f0b90b]" : "text-[#848e9c] hover:text-[#eaecef]"
+          )}
+        >
+          Market
+        </button>
+      </div>
 
-        <div className="flex gap-4 mt-4 mb-4">
-          <button 
-            onClick={() => setOrderType('limit')}
-            className={`text-xs font-medium ${orderType === 'limit' ? 'text-yellow-500' : 'text-gray-500'}`}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Buy Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[#848e9c] uppercase">Avbl</span>
+            <span className="text-[10px] font-bold text-[#eaecef] font-mono">10,000.00 USDT</span>
+          </div>
+          
+          <div className="relative group">
+            <span className="absolute left-3 top-2 text-[11px] text-[#848e9c]">Price</span>
+            <input 
+              type="number"
+              value={orderPrice}
+              onChange={(e) => setOrderPrice(e.target.value)}
+              disabled={orderType === 'market'}
+              className="w-full pl-12 pr-12 text-right bg-[#1e2329] border border-transparent focus:border-[#f0b90b] text-[#eaecef] text-[13px] font-mono h-8 rounded outline-none"
+            />
+            <span className="absolute right-3 top-2 text-[11px] text-[#eaecef]">{selectedMarket.quoteAsset}</span>
+          </div>
+
+          <div className="relative group">
+            <span className="absolute left-3 top-2 text-[11px] text-[#848e9c]">Amount</span>
+            <input 
+              type="number"
+              value={orderAmount}
+              onChange={(e) => setOrderAmount(e.target.value)}
+              className="w-full pl-14 pr-12 text-right bg-[#1e2329] border border-transparent focus:border-[#f0b90b] text-[#eaecef] text-[13px] font-mono h-8 rounded outline-none"
+            />
+            <span className="absolute right-3 top-2 text-[11px] text-[#eaecef]">{selectedMarket.baseAsset}</span>
+          </div>
+
+          <div className="flex justify-between gap-1">
+            {[25, 50, 75, 100].map((p) => (
+              <button
+                key={p}
+                onClick={() => handlePercentClick(p)}
+                className={cn(
+                  "flex-1 h-5 text-[9px] font-bold rounded transition-colors",
+                  percent === p ? "bg-[#f0b90b]/20 text-[#f0b90b] border border-[#f0b90b]/40" : "bg-[#1e2329] text-[#848e9c] hover:bg-[#2b3139]"
+                )}
+              >
+                {p}%
+              </button>
+            ))}
+          </div>
+
+          <Button 
+            className="w-full bg-[#0ecb81] hover:bg-[#0bc079] text-[#161a1e] font-bold h-9 text-[13px] rounded"
+            onClick={() => handlePlaceOrder('buy')}
           >
-            Limit
-          </button>
-          <button 
-            onClick={() => setOrderType('market')}
-            className={`text-xs font-medium ${orderType === 'market' ? 'text-yellow-500' : 'text-gray-500'}`}
-          >
-            Market
-          </button>
+            Buy {selectedMarket.baseAsset}
+          </Button>
         </div>
 
-        <TabsContent value="buy" className="space-y-4 m-0">
-          <div className="space-y-3">
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-xs text-gray-500">Price</span>
-              <Input 
-                type="number"
-                value={orderPrice}
-                onChange={(e) => setOrderPrice(e.target.value)}
-                disabled={orderType === 'market'}
-                className="pl-14 text-right bg-[#1e2329] border-none text-white h-10 focus-visible:ring-1 focus-visible:ring-yellow-500"
-              />
-              <span className="absolute right-3 top-2.5 text-xs text-gray-400">{selectedMarket.quoteAsset}</span>
-            </div>
-
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-xs text-gray-500">Amount</span>
-              <Input 
-                type="number"
-                value={orderAmount}
-                onChange={(e) => setOrderAmount(e.target.value)}
-                className="pl-16 text-right bg-[#1e2329] border-none text-white h-10 focus-visible:ring-1 focus-visible:ring-yellow-500"
-              />
-              <span className="absolute right-3 top-2.5 text-xs text-gray-400">{selectedMarket.baseAsset}</span>
-            </div>
-
-            <div className="flex justify-between gap-2">
-              {[25, 50, 75, 100].map((p) => (
-                <button
-                  key={p}
-                  onClick={() => handlePercentClick(p)}
-                  className={`flex-1 py-1 text-[10px] font-medium rounded bg-[#1e2329] hover:bg-gray-700 transition-colors ${percent === p ? 'text-yellow-500 border border-yellow-500/50' : 'text-gray-400'}`}
-                >
-                  {p}%
-                </button>
-              ))}
-            </div>
-
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>Total</span>
-              <span className="text-gray-200">
-                {(parseFloat(orderPrice) * (parseFloat(orderAmount) || 0)).toFixed(2)} {selectedMarket.quoteAsset}
-              </span>
-            </div>
-
-            <Button 
-              className="w-full bg-[#2ebd85] hover:bg-[#2ebd85]/90 text-white font-bold h-10"
-              onClick={() => handlePlaceOrder('buy')}
-            >
-              Buy {selectedMarket.baseAsset}
-            </Button>
+        {/* Sell Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[#848e9c] uppercase">Avbl</span>
+            <span className="text-[10px] font-bold text-[#eaecef] font-mono">0.00 {selectedMarket.baseAsset}</span>
           </div>
-        </TabsContent>
-
-        <TabsContent value="sell" className="space-y-4 m-0">
-          <div className="space-y-3">
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-xs text-gray-500">Price</span>
-              <Input 
-                type="number"
-                value={orderPrice}
-                onChange={(e) => setOrderPrice(e.target.value)}
-                disabled={orderType === 'market'}
-                className="pl-14 text-right bg-[#1e2329] border-none text-white h-10 focus-visible:ring-1 focus-visible:ring-yellow-500"
-              />
-              <span className="absolute right-3 top-2.5 text-xs text-gray-400">{selectedMarket.quoteAsset}</span>
-            </div>
-
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-xs text-gray-500">Amount</span>
-              <Input 
-                type="number"
-                value={orderAmount}
-                onChange={(e) => setOrderAmount(e.target.value)}
-                className="pl-16 text-right bg-[#1e2329] border-none text-white h-10 focus-visible:ring-1 focus-visible:ring-yellow-500"
-              />
-              <span className="absolute right-3 top-2.5 text-xs text-gray-400">{selectedMarket.baseAsset}</span>
-            </div>
-
-            <div className="flex justify-between gap-2">
-              {[25, 50, 75, 100].map((p) => (
-                <button
-                  key={p}
-                  onClick={() => handlePercentClick(p)}
-                  className={`flex-1 py-1 text-[10px] font-medium rounded bg-[#1e2329] hover:bg-gray-700 transition-colors ${percent === p ? 'text-yellow-500 border border-yellow-500/50' : 'text-gray-400'}`}
-                >
-                  {p}%
-                </button>
-              ))}
-            </div>
-
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>Total</span>
-              <span className="text-gray-200">
-                {(parseFloat(orderPrice) * (parseFloat(orderAmount) || 0)).toFixed(2)} {selectedMarket.quoteAsset}
-              </span>
-            </div>
-
-            <Button 
-              className="w-full bg-[#f6465d] hover:bg-[#f6465d]/90 text-white font-bold h-10"
-              onClick={() => handlePlaceOrder('sell')}
-            >
-              Sell {selectedMarket.baseAsset}
-            </Button>
+          
+          <div className="relative group">
+            <span className="absolute left-3 top-2 text-[11px] text-[#848e9c]">Price</span>
+            <input 
+              type="number"
+              value={orderPrice}
+              onChange={(e) => setOrderPrice(e.target.value)}
+              disabled={orderType === 'market'}
+              className="w-full pl-12 pr-12 text-right bg-[#1e2329] border border-transparent focus:border-[#f0b90b] text-[#eaecef] text-[13px] font-mono h-8 rounded outline-none"
+            />
+            <span className="absolute right-3 top-2 text-[11px] text-[#eaecef]">{selectedMarket.quoteAsset}</span>
           </div>
-        </TabsContent>
-      </Tabs>
+
+          <div className="relative group">
+            <span className="absolute left-3 top-2 text-[11px] text-[#848e9c]">Amount</span>
+            <input 
+              type="number"
+              value={orderAmount}
+              onChange={(e) => setOrderAmount(e.target.value)}
+              className="w-full pl-14 pr-12 text-right bg-[#1e2329] border border-transparent focus:border-[#f0b90b] text-[#eaecef] text-[13px] font-mono h-8 rounded outline-none"
+            />
+            <span className="absolute right-3 top-2 text-[11px] text-[#eaecef]">{selectedMarket.baseAsset}</span>
+          </div>
+
+          <div className="flex justify-between gap-1">
+            {[25, 50, 75, 100].map((p) => (
+              <button
+                key={p}
+                onClick={() => handlePercentClick(p)}
+                className={cn(
+                  "flex-1 h-5 text-[9px] font-bold rounded transition-colors",
+                  percent === p ? "bg-[#f0b90b]/20 text-[#f0b90b] border border-[#f0b90b]/40" : "bg-[#1e2329] text-[#848e9c] hover:bg-[#2b3139]"
+                )}
+              >
+                {p}%
+              </button>
+            ))}
+          </div>
+
+          <Button 
+            className="w-full bg-[#f6465d] hover:bg-[#e03f53] text-[#eaecef] font-bold h-9 text-[13px] rounded"
+            onClick={() => handlePlaceOrder('sell')}
+          >
+            Sell {selectedMarket.baseAsset}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

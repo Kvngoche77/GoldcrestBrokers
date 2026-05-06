@@ -9,45 +9,45 @@ export function OrderBook() {
   const { orderBook, selectedMarket, setOrderPrice } = useTradeStore();
 
   return (
-    <div className="flex flex-col h-1/2 overflow-hidden border-b border-[#1e2329]">
-      <div className="p-2 text-xs font-bold text-gray-400">Order Book</div>
+    <div className="flex flex-col h-full overflow-hidden select-none">
+      <div className="px-2 py-1.5 text-[12px] font-bold text-[#eaecef] border-b border-[#1e2329]">Order Book</div>
       
-      <div className="px-2 py-1 flex items-center text-[10px] text-gray-500 font-medium">
+      <div className="px-2 py-1 flex items-center text-[10px] text-[#848e9c] font-medium border-b border-[#1e2329]">
         <span className="flex-1">Price({selectedMarket.quoteAsset})</span>
-        <span className="w-20 text-right">Amount({selectedMarket.baseAsset})</span>
-        <span className="w-20 text-right">Total</span>
+        <span className="w-16 text-right">Amount({selectedMarket.baseAsset})</span>
+        <span className="w-16 text-right">Total</span>
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="flex flex-col">
+        <div className="flex flex-col min-h-0">
           {/* Asks (Sell) */}
           <div className="flex flex-col-reverse">
             {orderBook.asks.map((ask, i) => (
               <div 
                 key={`ask-${i}`} 
-                className="relative h-5 flex items-center px-2 cursor-pointer hover:bg-gray-800 transition-colors group"
+                className="relative h-[18px] flex items-center px-2 cursor-pointer hover:bg-[#1e2329] transition-colors group"
                 onClick={() => setOrderPrice(ask.price.toString())}
               >
                 <div 
-                  className="absolute right-0 top-0 bottom-0 bg-red-500/10 transition-all duration-300" 
-                  style={{ width: `${(ask.amount / 2) * 100}%` }}
+                  className="absolute right-0 top-0 bottom-0 bg-[#f6465d]/10 transition-all duration-300" 
+                  style={{ width: `${Math.min((ask.amount / 2) * 100, 100)}%` }}
                 />
-                <span className="flex-1 text-xs text-red-500 z-10">{ask.price.toLocaleString()}</span>
-                <span className="w-20 text-right text-xs text-gray-300 z-10">{ask.amount.toFixed(4)}</span>
-                <span className="w-20 text-right text-xs text-gray-300 z-10">{ask.total.toFixed(4)}</span>
+                <span className="flex-1 text-[11px] text-[#f6465d] font-mono z-10">{ask.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="w-16 text-right text-[11px] text-[#eaecef] font-mono z-10">{ask.amount.toFixed(4)}</span>
+                <span className="w-16 text-right text-[11px] text-[#eaecef] font-mono z-10">{ask.total.toFixed(4)}</span>
               </div>
             ))}
           </div>
 
           {/* Current Price */}
-          <div className="py-2 px-2 bg-gray-900/50 flex items-center gap-2 border-y border-[#1e2329]">
+          <div className="py-1 px-2 bg-[#1e2329]/30 flex items-center gap-2 border-y border-[#1e2329]">
             <span className={cn(
-              "text-lg font-bold",
-              selectedMarket.change24h >= 0 ? "text-green-500" : "text-red-500"
+              "text-[16px] font-bold font-mono tracking-tight",
+              selectedMarket.change24h >= 0 ? "text-[#0ecb81]" : "text-[#f6465d]"
             )}>
-              {selectedMarket.price.toLocaleString()}
+              {selectedMarket.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </span>
-            <span className="text-[10px] text-gray-500">${selectedMarket.price.toLocaleString()}</span>
+            <span className="text-[11px] text-[#848e9c] font-mono leading-none mt-0.5">${selectedMarket.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
 
           {/* Bids (Buy) */}
@@ -55,16 +55,16 @@ export function OrderBook() {
             {orderBook.bids.map((bid, i) => (
               <div 
                 key={`bid-${i}`} 
-                className="relative h-5 flex items-center px-2 cursor-pointer hover:bg-gray-800 transition-colors group"
+                className="relative h-[18px] flex items-center px-2 cursor-pointer hover:bg-[#1e2329] transition-colors group"
                 onClick={() => setOrderPrice(bid.price.toString())}
               >
                 <div 
-                  className="absolute right-0 top-0 bottom-0 bg-green-500/10 transition-all duration-300" 
-                  style={{ width: `${(bid.amount / 2) * 100}%` }}
+                  className="absolute right-0 top-0 bottom-0 bg-[#0ecb81]/10 transition-all duration-300" 
+                  style={{ width: `${Math.min((bid.amount / 2) * 100, 100)}%` }}
                 />
-                <span className="flex-1 text-xs text-green-500 z-10">{bid.price.toLocaleString()}</span>
-                <span className="w-20 text-right text-xs text-gray-300 z-10">{bid.amount.toFixed(4)}</span>
-                <span className="w-20 text-right text-xs text-gray-300 z-10">{bid.total.toFixed(4)}</span>
+                <span className="flex-1 text-[11px] text-[#0ecb81] font-mono z-10">{bid.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="w-16 text-right text-[11px] text-[#eaecef] font-mono z-10">{bid.amount.toFixed(4)}</span>
+                <span className="w-16 text-right text-[11px] text-[#eaecef] font-mono z-10">{bid.total.toFixed(4)}</span>
               </div>
             ))}
           </div>

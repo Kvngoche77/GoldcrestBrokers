@@ -8,24 +8,24 @@ export function RecentTrades() {
   const { recentTrades, selectedMarket } = useTradeStore();
 
   return (
-    <div className="flex flex-col h-1/2 overflow-hidden">
-      <div className="p-2 text-xs font-bold text-gray-400">Market Trades</div>
+    <div className="flex flex-col h-full overflow-hidden select-none">
+      <div className="px-2 py-1.5 text-[12px] font-bold text-[#eaecef] border-b border-[#1e2329]">Market Trades</div>
       
-      <div className="px-2 py-1 flex items-center text-[10px] text-gray-500 font-medium border-b border-[#1e2329]">
+      <div className="px-2 py-1 flex items-center text-[10px] text-[#848e9c] font-medium border-b border-[#1e2329]">
         <span className="flex-1">Price({selectedMarket.quoteAsset})</span>
-        <span className="w-20 text-right">Amount({selectedMarket.baseAsset})</span>
-        <span className="w-20 text-right">Time</span>
+        <span className="w-16 text-right">Amount</span>
+        <span className="w-16 text-right">Time</span>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="flex flex-col">
           {recentTrades.map((trade) => (
-            <div key={trade.id} className="h-5 flex items-center px-2 hover:bg-gray-800 transition-colors">
-              <span className={`flex-1 text-xs font-medium ${trade.side === 'buy' ? 'text-green-500' : 'text-red-500'}`}>
-                {trade.price.toLocaleString()}
+            <div key={trade.id} className="h-[18px] flex items-center px-2 hover:bg-[#1e2329] transition-colors">
+              <span className={`flex-1 text-[11px] font-mono ${trade.side === 'buy' ? 'text-[#0ecb81]' : 'text-[#f6465d]'}`}>
+                {trade.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
-              <span className="w-20 text-right text-xs text-gray-300">{trade.amount.toFixed(4)}</span>
-              <span className="w-20 text-right text-xs text-gray-500">{trade.time}</span>
+              <span className="w-16 text-right text-[11px] text-[#eaecef] font-mono">{trade.amount.toFixed(4)}</span>
+              <span className="w-16 text-right text-[11px] text-[#848e9c] font-mono">{trade.time}</span>
             </div>
           ))}
         </div>

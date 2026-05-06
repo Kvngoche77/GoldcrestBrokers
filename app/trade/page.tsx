@@ -21,37 +21,37 @@ export default function TradePage() {
   }, [updateMarketData]);
 
   return (
-    <div className="flex flex-col h-screen bg-[#0b0e11] text-gray-200 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen bg-[#0b0e11] text-[#eaecef] overflow-hidden selection:bg-[#f0b90b]/30">
+      {/* Top Navbar */}
       <TradingHeader />
       
-      <main className="flex-1 grid grid-cols-[280px_1fr_320px] grid-rows-[1fr_300px] gap-[1px] bg-[#1e2329] overflow-hidden">
-        {/* Left Sidebar: Market Watch */}
-        <div className="bg-[#0b0e11] row-span-2 flex flex-col min-h-0">
+      <main className="flex-1 grid grid-cols-[280px_1fr_320px] gap-[1px] bg-[#1e2329] overflow-hidden border-t border-[#1e2329]">
+        {/* Left Sidebar: Market Watchlist */}
+        <div className="bg-[#0b0e11] flex flex-col min-h-0">
           <MarketWatch />
         </div>
 
-        {/* Center Top: Chart */}
-        <div className="bg-[#0b0e11] flex flex-col min-h-0 border-r border-[#1e2329]">
-          <TradingChart />
-        </div>
-
-        {/* Right Sidebar: Order Book & Recent Trades */}
-        <div className="bg-[#0b0e11] flex flex-col min-h-0 border-l border-[#1e2329] overflow-hidden">
-          <div className="flex-1 flex flex-col overflow-hidden">
-             <OrderBook />
-             <div className="h-[1px] bg-[#1e2329]" />
-             <RecentTrades />
+        {/* Center Section: Chart & Orders */}
+        <div className="flex flex-col min-h-0 gap-[1px]">
+          <div className="flex-[2] bg-[#0b0e11] min-h-0">
+            <TradingChart />
+          </div>
+          <div className="h-[320px] bg-[#0b0e11] min-h-0">
+            <UserOrders />
           </div>
         </div>
 
-        {/* Center Bottom: User Orders */}
-        <div className="bg-[#0b0e11] border-r border-t border-[#1e2329] overflow-hidden">
-          <UserOrders />
-        </div>
-
-        {/* Right Bottom: Trade Panel */}
-        <div className="bg-[#0b0e11] border-t border-[#1e2329] overflow-hidden">
-          <TradePanel />
+        {/* Right Sidebar: Order Book, Recent Trades & Trade Panel */}
+        <div className="flex flex-col min-h-0 gap-[1px]">
+          <div className="flex-1 bg-[#0b0e11] min-h-0">
+            <OrderBook />
+          </div>
+          <div className="h-[200px] bg-[#0b0e11] min-h-0">
+            <RecentTrades />
+          </div>
+          <div className="h-[380px] bg-[#0b0e11] min-h-0">
+            <TradePanel />
+          </div>
         </div>
       </main>
     </div>
