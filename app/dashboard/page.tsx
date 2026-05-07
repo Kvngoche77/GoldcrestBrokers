@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowUpRight, ArrowDownLeft, TrendingUp, Wallet, Users, Clock, ArrowRight, Plus } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, TrendingUp, Wallet, Users, Clock, ArrowRight, Plus, Newspaper, Headphones, LineChart, Copy } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { PortfolioChart } from '@/components/sections/PortfolioChart';
@@ -123,10 +123,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           { href: '/dashboard/deposit', label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-400', bg: 'bg-emerald-500/10 hover:bg-emerald-500/20' },
-          { href: '/dashboard/invest', label: 'Invest', icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10 hover:bg-blue-500/20' },
+          { href: '/dashboard/trade', label: 'Spot', icon: LineChart, color: 'text-blue-400', bg: 'bg-blue-500/10 hover:bg-blue-500/20' },
+          { href: '/dashboard/trade/copy', label: 'Copy Trade', icon: Copy, color: 'text-indigo-400', bg: 'bg-indigo-500/10 hover:bg-indigo-500/20' },
           { href: '/dashboard/withdraw', label: 'Withdraw', icon: ArrowUpRight, color: 'text-amber-400', bg: 'bg-amber-500/10 hover:bg-amber-500/20' },
           { href: '/dashboard/referrals', label: 'Referrals', icon: Users, color: 'text-rose-400', bg: 'bg-rose-500/10 hover:bg-rose-500/20' },
         ].map(({ href, label, icon: Icon, color, bg }) => (
@@ -209,12 +210,52 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Recent Transactions */}
+        {/* Market News Widget */}
         <motion.div
           className="glass rounded-2xl overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
+            <h2 className="font-semibold text-white flex items-center gap-2">
+              <Newspaper size={18} className="text-blue-400" />
+              Market Insights
+            </h2>
+            <Link href="/dashboard/news" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              Read all <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="p-4 space-y-4">
+            {[
+              { title: 'Bitcoin Breaks $75k Resistance', source: 'CoinDesk', time: '18m ago', sentiment: 'Bullish' },
+              { title: 'Ethereum ETF Inflows Hit Record', source: 'The Block', time: '45m ago', sentiment: 'Bullish' },
+              { title: 'Fed Signals Rate Stability', source: 'Reuters', time: '1h ago', sentiment: 'Neutral' },
+            ].map((news, i) => (
+              <div key={i} className="flex flex-col gap-1.5 py-2 border-b border-white/[0.04] last:border-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">{news.source}</span>
+                  <span className="text-[10px] text-slate-500">{news.time}</span>
+                </div>
+                <p className="text-sm font-medium text-white line-clamp-1">{news.title}</p>
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full w-fit ${
+                  news.sentiment === 'Bullish' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                }`}>
+                  {news.sentiment}
+                </span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Recent Transactions */}
+        <motion.div
+          className="glass rounded-2xl overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
         >
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
             <h2 className="font-semibold text-white">Recent Transactions</h2>
@@ -274,6 +315,47 @@ export default function DashboardPage() {
                 })}
               </div>
             )}
+          </div>
+        </motion.div>
+
+        {/* Support & Security Widget */}
+        <motion.div
+          className="glass rounded-2xl overflow-hidden"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.05]">
+            <h2 className="font-semibold text-white">Support & Security</h2>
+            <Link href="/dashboard/support" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              Help Center <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="p-5 space-y-5">
+            <div className="flex items-start gap-4 p-4 bg-blue-600/10 rounded-2xl border border-blue-500/20">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
+                <Headphones size={20} className="text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Need Assistance?</p>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">Our support team is available 24/7 to help you with your investments.</p>
+                <Link href="/dashboard/support" className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+                  Open Support Ticket <ArrowRight size={12} />
+                </Link>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Link href="/dashboard/settings" className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.05] hover:bg-white/[0.06] transition-all text-center">
+                <p className="text-xs font-semibold text-white mb-1">Security Settings</p>
+                <p className="text-[10px] text-slate-500">Enable 2FA</p>
+              </Link>
+              <Link href="/dashboard/kyc" className="p-3 bg-white/[0.03] rounded-xl border border-white/[0.05] hover:bg-white/[0.06] transition-all text-center">
+                <p className="text-xs font-semibold text-white mb-1">KYC Status</p>
+                <p className={`text-[10px] ${profile?.kyc_status === 'verified' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {profile?.kyc_status?.toUpperCase() ?? 'PENDING'}
+                </p>
+              </Link>
+            </div>
           </div>
         </motion.div>
       </div>

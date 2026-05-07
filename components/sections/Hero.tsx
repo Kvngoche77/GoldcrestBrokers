@@ -92,7 +92,7 @@ export function Hero() {
             href={user ? '/dashboard' : '/auth/register'}
             className="flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-2xl text-base transition-all duration-200 glow-blue hover:scale-105 group"
           >
-            {user ? 'Go to Dashboard' : 'Start Investing Free'}
+            {user ? 'Go to Dashboard' : 'Start Trading'}
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </Link>
           <a

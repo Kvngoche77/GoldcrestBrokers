@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, TrendingUp, Wallet, ArrowDownToLine, ArrowUpFromLine,
   Users, Bell, Settings, LogOut, TrendingDown, Menu, X, Shield, ShieldCheck,
-  LineChart
+  LineChart, Newspaper, BarChart3, Headphones, Copy
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
@@ -17,13 +17,17 @@ import { GoogleTranslate } from '@/components/GoogleTranslate';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { href: '/dashboard/trade', label: 'Trade', icon: LineChart },
+  { href: '/dashboard/trade', label: 'Spot Trading', icon: LineChart },
+  { href: '/dashboard/trade/copy', label: 'Copy Trading', icon: Copy },
   { href: '/dashboard/invest', label: 'Investments', icon: TrendingUp },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/dashboard/deposit', label: 'Deposit', icon: ArrowDownToLine },
   { href: '/dashboard/withdraw', label: 'Withdraw', icon: ArrowUpFromLine },
   { href: '/dashboard/transactions', label: 'Transactions', icon: Wallet },
   { href: '/dashboard/referrals', label: 'Referrals', icon: Users },
+  { href: '/dashboard/news', label: 'Market News', icon: Newspaper },
   { href: '/dashboard/kyc', label: 'KYC Verification', icon: ShieldCheck },
+  { href: '/dashboard/support', label: 'Support', icon: Headphones },
   { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ];

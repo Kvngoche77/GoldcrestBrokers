@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, Menu, X, ChevronDown, User, LayoutDashboard,
-  LogOut, Bell, Shield, Wallet
+  LogOut, Bell, Shield, Wallet, Copy
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
@@ -14,7 +14,13 @@ import { GoogleTranslate } from '@/components/GoogleTranslate';
 
 const navLinks = [
   { href: '/#markets', label: 'Markets' },
-  { href: '/dashboard/trade', label: 'Trade' },
+  { 
+    label: 'Trade',
+    dropdown: [
+      { href: '/dashboard/trade', label: 'Spot Trading', icon: TrendingUp },
+      { href: '/dashboard/trade/copy', label: 'Copy Trading', icon: Copy },
+    ]
+  },
   { href: '/#plans', label: 'Investment Plans' },
   { href: '/#referral', label: 'Referral' },
   { href: '/#about', label: 'About' },
@@ -71,7 +77,7 @@ export function Navbar() {
                 GOLDCREST
               </span>
               <span className="text-[10px] font-bold tracking-[0.2em] text-blue-400 uppercase mt-0.5">
-                Brokerage Group
+                Broker
               </span>
             </div>
           </Link>
@@ -79,13 +85,36 @@ export function Navbar() {
           {/* Desktop Nav */}
           <div className="hidden lg:flex items-center gap-1">
             {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
-              >
-                {link.label}
-              </Link>
+              link.dropdown ? (
+                <div key={link.label} className="relative group">
+                  <button className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200">
+                    {link.label}
+                    <ChevronDown size={14} className="text-slate-500 group-hover:rotate-180 transition-transform" />
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 w-48 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200">
+                    <div className="glass-strong rounded-xl p-1 shadow-2xl border border-white/10">
+                      {link.dropdown.map((sub) => (
+                        <Link
+                          key={sub.href}
+                          href={sub.href}
+                          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-sm text-slate-300 hover:text-white transition-all"
+                        >
+                          <sub.icon size={16} className="text-blue-400" />
+                          {sub.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href!}
+                  className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+                >
+                  {link.label}
+                </Link>
+              )
             ))}
           </div>
 
@@ -199,13 +228,29 @@ export function Navbar() {
           >
             <div className="px-4 py-4 space-y-1">
               {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all"
-                >
-                  {link.label}
-                </Link>
+                link.dropdown ? (
+                  <div key={link.label} className="py-1">
+                    <p className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{link.label}</p>
+                    {link.dropdown.map((sub) => (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all"
+                      >
+                        <sub.icon size={16} className="text-blue-400" />
+                        {sub.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <Link
+                    key={link.href}
+                    href={link.href!}
+                    className="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all"
+                  >
+                    {link.label}
+                  </Link>
+                )
               ))}
               <div className="h-px bg-white/[0.06] my-3" />
               {user ? (

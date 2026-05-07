@@ -161,7 +161,7 @@ export default function HomePage() {
               <div className="flex flex-col items-center">
                 <h1 className="text-4xl font-black tracking-tight flex flex-col items-center">
                   <span className="text-white">GOLDCREST</span>
-                  <span className="text-sm tracking-[0.3em] text-blue-400 uppercase font-bold mt-1">Brokerage Group</span>
+                  <span className="text-sm tracking-[0.3em] text-blue-400 uppercase font-bold mt-1">Broker</span>
                 </h1>
                 <div className="mt-4 w-48 h-1 bg-white/5 rounded-full overflow-hidden">
                   <motion.div

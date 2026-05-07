@@ -4,9 +4,10 @@ import { TrendingUp, Twitter, Linkedin, Github, Mail, Shield, Globe } from 'luci
 const footerLinks = {
   Platform: [
     { href: '/#markets', label: 'Markets' },
+    { href: '/dashboard/trade', label: 'Spot Trading' },
+    { href: '/dashboard/trade/copy', label: 'Copy Trading' },
     { href: '/#plans', label: 'Investment Plans' },
     { href: '/#referral', label: 'Referral Program' },
-    { href: '/auth/register', label: 'Get Started' },
   ],
   Company: [
     { href: '/#about', label: 'About Us' },
@@ -41,8 +42,8 @@ export function Footer() {
                   GOLDCREST
                 </span>
                 <span className="text-[10px] font-bold tracking-[0.2em] text-blue-400 uppercase mt-0.5">
-                  Brokerage Group
-                </span>
+                Broker
+              </span>
               </div>
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs mb-6">
