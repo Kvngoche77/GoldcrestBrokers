@@ -91,7 +91,7 @@ const countries = [
 ];
 
 export default function KYCPage() {
-  const { profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [isStarted, setIsStarted] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -295,7 +295,7 @@ export default function KYCPage() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Email Address</label>
-                        <input type="email" value={profile.email || ''} readOnly className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-400 cursor-not-allowed" />
+                        <input type="email" value={user?.email || ''} readOnly className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-slate-400 cursor-not-allowed" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Phone Number</label>
