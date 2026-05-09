@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Users, Plus, Search, Filter, Edit2, Trash2, X, Save, 
-  Loader2, CheckCircle2, AlertCircle, TrendingUp, BarChart3,
-  DollarSign, User, Shield, Info, MoreVertical
+  Users, Plus, Search, Edit2, Trash2, X, Save, 
+  Loader2, CheckCircle2, TrendingUp,
+  User, UploadCloud, ImageIcon, Link
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
@@ -29,6 +29,10 @@ export default function AdminCopyTradingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTrader, setEditingTrader] = useState<Trader | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [urlMode, setUrlMode] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [formData, setFormData] = useState<Partial<Trader>>({
@@ -41,6 +45,48 @@ export default function AdminCopyTradingPage() {
     is_active: true,
     avatar_url: ''
   });
+
+  // Upload image to Supabase Storage
+  const handleImageUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB');
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `trader-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      setFormData(prev => ({ ...prev, avatar_url: data.publicUrl }));
+      setImagePreview(data.publicUrl);
+      toast.success('Image uploaded!');
+    } catch (err: any) {
+      // Fallback: show preview locally even if bucket isn't configured
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setImagePreview(result);
+        toast.error('Storage bucket not configured. Using local preview only.');
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageUpload(file);
+  };
 
   // Fetch traders
   const { data: traders = [], isLoading } = useQuery({
@@ -104,6 +150,8 @@ export default function AdminCopyTradingPage() {
   const handleEdit = (trader: Trader) => {
     setEditingTrader(trader);
     setFormData(trader);
+    setImagePreview(trader.avatar_url || null);
+    setUrlMode(false);
     setIsModalOpen(true);
   };
 
@@ -118,6 +166,8 @@ export default function AdminCopyTradingPage() {
       is_active: true,
       avatar_url: ''
     });
+    setImagePreview(null);
+    setUrlMode(false);
   };
 
   const handleOpenCreate = () => {
@@ -304,14 +354,69 @@ export default function AdminCopyTradingPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Avatar URL</label>
-                      <input 
-                        type="text"
-                        value={formData.avatar_url}
-                        onChange={e => setFormData({...formData, avatar_url: e.target.value})}
-                        placeholder="https://..."
-                        className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
-                      />
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Trader Image</label>
+                        <button
+                          type="button"
+                          onClick={() => setUrlMode(!urlMode)}
+                          className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          {urlMode ? <UploadCloud size={12} /> : <Link size={12} />}
+                          {urlMode ? 'Upload file' : 'Use URL instead'}
+                        </button>
+                      </div>
+
+                      {urlMode ? (
+                        <input
+                          type="text"
+                          value={formData.avatar_url}
+                          onChange={e => {
+                            setFormData({ ...formData, avatar_url: e.target.value });
+                            setImagePreview(e.target.value);
+                          }}
+                          placeholder="https://example.com/avatar.jpg"
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                        />
+                      ) : (
+                        <div
+                          className="relative border-2 border-dashed border-white/10 rounded-xl overflow-hidden cursor-pointer hover:border-blue-500/40 transition-colors group"
+                          style={{ minHeight: '130px' }}
+                          onClick={() => fileInputRef.current?.click()}
+                          onDragOver={e => e.preventDefault()}
+                          onDrop={handleFileDrop}
+                        >
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }}
+                          />
+                          {imagePreview ? (
+                            <div className="relative w-full h-32">
+                              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <p className="text-xs text-white font-semibold">Click to change</p>
+                              </div>
+                              {uploading && (
+                                <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                                  <Loader2 size={24} className="animate-spin text-blue-400" />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center py-8 gap-2 text-slate-500 group-hover:text-slate-400 transition-colors">
+                              {uploading ? (
+                                <Loader2 size={24} className="animate-spin text-blue-400" />
+                              ) : (
+                                <UploadCloud size={24} />
+                              )}
+                              <p className="text-xs font-medium">{uploading ? 'Uploading...' : 'Click or drag image here'}</p>
+                              <p className="text-[10px] text-slate-600">PNG, JPG, WEBP — max 5MB</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Bio / Strategy</label>
