@@ -93,6 +93,7 @@ const countries = [
 export default function KYCPage() {
   const { user, profile, refreshProfile } = useAuth();
   const [isStarted, setIsStarted] = useState(false);
+  const [hasSubmission, setHasSubmission] = useState<boolean | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
@@ -121,6 +122,25 @@ export default function KYCPage() {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  useEffect(() => {
+    async function checkSubmission() {
+      if (!profile?.id) return;
+      try {
+        const { data, error } = await supabase
+          .from('kyc_submissions')
+          .select('id, status')
+          .eq('user_id', profile.id)
+          .maybeSingle();
+        
+        setHasSubmission(!!data);
+      } catch (err) {
+        console.error('Error checking KYC submission:', err);
+        setHasSubmission(false);
+      }
+    }
+    checkSubmission();
+  }, [profile?.id]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -211,8 +231,17 @@ export default function KYCPage() {
 
   if (!profile) return null;
 
-  // If already verified or pending, show status
-  if (profile.kyc_status === 'verified' || (profile.kyc_status === 'pending' && !isStarted)) {
+  // Wait for submission check to complete
+  if (hasSubmission === null) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // If already verified or actually pending (has a submission), show status
+  if (profile.kyc_status === 'verified' || (hasSubmission && profile.kyc_status === 'pending')) {
     return (
       <div className="max-w-xl mx-auto mt-12 text-center p-8 bg-white/[0.03] border border-white/10 rounded-2xl backdrop-blur-xl">
         <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-400">
