@@ -96,6 +96,7 @@ export default function KYCPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     dob: '',
     email: '',
@@ -124,6 +125,11 @@ export default function KYCPage() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         setUploadPreview(event.target?.result as string);
@@ -133,26 +139,71 @@ export default function KYCPage() {
   };
 
   const handleSubmit = async () => {
+    if (!selectedFile) {
+      toast.error('Please upload a valid ID document');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      // In a real application, we'd store all this metadata in a kyc_submissions table
-      const { error } = await supabase
+      // 1. Upload Document
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${profile?.id}/${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('kyc-documents')
+        .upload(fileName, selectedFile);
+
+      if (uploadError) throw uploadError;
+
+      const documentUrl = supabase.storage
+        .from('kyc-documents')
+        .getPublicUrl(fileName).data.publicUrl;
+
+      // 2. Save KYC Submission
+      const { error: insertError } = await supabase
+        .from('kyc_submissions')
+        .insert({
+          user_id: profile?.id,
+          full_name: profile?.full_name || '',
+          email: user?.email || '',
+          phone: profile?.phone || '',
+          dob: formData.dob,
+          gender: formData.gender,
+          country: formData.country,
+          city: formData.city,
+          zip: formData.zip,
+          address: formData.address,
+          id_type: formData.idType,
+          id_number: formData.idNumber,
+          issue_date: formData.issueDate,
+          expiry_date: formData.expiryDate,
+          document_url: documentUrl,
+          status: 'pending'
+        });
+
+      if (insertError) {
+        // If there is an error inserting (like a duplicate submission), we should know
+        throw insertError;
+      }
+
+      // 3. Update Profile Status
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           kyc_status: 'pending',
           country: formData.country,
-          // Store other data as needed
         })
         .eq('id', profile?.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
       
       await refreshProfile();
       toast.success('KYC application submitted successfully!');
       setIsStarted(false);
       setCurrentStep(1);
     } catch (error: any) {
-      toast.error('Failed to submit application. Please try again.');
+      console.error('KYC Submit Error:', error);
+      toast.error(error.message || 'Failed to submit application. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

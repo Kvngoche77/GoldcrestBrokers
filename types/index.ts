@@ -118,3 +118,26 @@ export type CryptoPrice = {
   total_volume: number;
   image: string;
 };
+
+export type KYCSubmission = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  dob?: string;
+  gender?: string;
+  country: string;
+  city?: string;
+  zip?: string;
+  address?: string;
+  id_type: string;
+  id_number: string;
+  issue_date?: string;
+  expiry_date?: string;
+  document_url?: string;
+  status: 'pending' | 'verified' | 'rejected';
+  admin_note?: string;
+  created_at: string;
+  updated_at: string;
+};
