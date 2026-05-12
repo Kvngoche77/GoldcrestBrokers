@@ -47,35 +47,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('AuthContext: Profile loaded successfully:', data);
         setProfile(data as Profile);
         setLoading(false);
-      } else if (retries > 0) {
-        console.log('AuthContext: Profile incomplete or not found, retrying in 1s...');
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        return fetchProfile(userId, retries - 1);
-      } else if (data) {
-        // We have data but it's still missing username after retries
-        console.warn('AuthContext: Profile found but incomplete after retries:', data);
-        setProfile(data as Profile);
-        setLoading(false);
       } else {
-        console.warn('AuthContext: No profile found for this ID after retries');
-        if (!error) {
-          console.log('AuthContext: Attempting fallback creation...');
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: userId,
-              username: user?.user_metadata?.username || user?.email?.split('@')[0],
-              full_name: user?.user_metadata?.full_name || '',
-              referral_code: Math.random().toString(36).substring(2, 10).toUpperCase()
-            })
-            .select()
-            .maybeSingle();
-          
-          if (createError) console.error('AuthContext: Fallback creation error:', createError);
-          if (newProfile) {
-            console.log('AuthContext: Fallback profile created:', newProfile);
-            setProfile(newProfile as Profile);
-          }
+        // Profile is missing or incomplete (e.g. missing username)
+        const fallbackUsername = user?.user_metadata?.username || user?.email?.split('@')[0] || 'user';
+        const fallbackFullName = user?.user_metadata?.full_name || '';
+        
+        console.log(`AuthContext: Profile ${data ? 'incomplete' : 'not found'}, attempting to fix/create...`);
+        
+        const { data: fixedProfile, error: fixError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            username: data?.username || fallbackUsername,
+            full_name: data?.full_name || fallbackFullName,
+            referral_code: data?.referral_code || Math.random().toString(36).substring(2, 10).toUpperCase()
+          })
+          .select()
+          .maybeSingle();
+
+        if (fixError) {
+          console.error('AuthContext: Error fixing profile:', fixError);
+          if (data) setProfile(data as Profile); // Use what we have if fix fails
+        } else if (fixedProfile) {
+          console.log('AuthContext: Profile fixed/created successfully:', fixedProfile);
+          setProfile(fixedProfile as Profile);
         }
         setLoading(false);
       }
