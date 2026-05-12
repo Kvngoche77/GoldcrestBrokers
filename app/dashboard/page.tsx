@@ -35,7 +35,7 @@ function StatCard({
 }
 
 export default function DashboardPage() {
-  const { profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
 
   const { data: investments = [] } = useQuery({
     queryKey: ['investments', profile?.id],
