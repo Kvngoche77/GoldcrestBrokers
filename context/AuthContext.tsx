@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string, retries = 3) => {
+  const fetchProfile = async (userId: string, retries = 3): Promise<void> => {
     console.log(`AuthContext: Fetching profile for ID: ${userId} (Attempt: ${4 - retries})`);
     try {
       const { data, error } = await supabase
