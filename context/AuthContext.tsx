@@ -29,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    console.log('AuthContext: Fetching profile for ID:', userId);
+  const fetchProfile = async (userId: string, retries = 3) => {
+    console.log(`AuthContext: Fetching profile for ID: ${userId} (Attempt: ${4 - retries})`);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -42,19 +42,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('AuthContext: Supabase error fetching profile:', error);
       }
 
-      if (data) {
+      // Check if profile exists and has basic required data
+      if (data && data.username) {
         console.log('AuthContext: Profile loaded successfully:', data);
         setProfile(data as Profile);
+        setLoading(false);
+      } else if (retries > 0) {
+        console.log('AuthContext: Profile incomplete or not found, retrying in 1s...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return fetchProfile(userId, retries - 1);
+      } else if (data) {
+        // We have data but it's still missing username after retries
+        console.warn('AuthContext: Profile found but incomplete after retries:', data);
+        setProfile(data as Profile);
+        setLoading(false);
       } else {
-        console.warn('AuthContext: No profile found for this ID');
+        console.warn('AuthContext: No profile found for this ID after retries');
         if (!error) {
           console.log('AuthContext: Attempting fallback creation...');
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
-            .insert({
+            .upsert({
               id: userId,
               username: user?.user_metadata?.username || user?.email?.split('@')[0],
               full_name: user?.user_metadata?.full_name || '',
+              referral_code: Math.random().toString(36).substring(2, 10).toUpperCase()
             })
             .select()
             .maybeSingle();
@@ -65,10 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile(newProfile as Profile);
           }
         }
+        setLoading(false);
       }
     } catch (err) {
       console.error('AuthContext: Unexpected error in fetchProfile:', err);
-    } finally {
       setLoading(false);
     }
   };

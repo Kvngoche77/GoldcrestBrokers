@@ -192,6 +192,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
+        {/* Email Verification Warning */}
+        {!user?.email_confirmed_at && (
+          <div className="px-4 sm:px-6 py-3 bg-amber-500/10 border-b border-amber-500/20">
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                  <Shield size={16} className="text-amber-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm font-medium text-amber-200">
+                    Your email is not verified.
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-amber-500/80 mt-0.5 truncate">
+                    Please check your inbox ({user?.email}) to verify your account and unlock all features.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={async () => {
+                  const { error } = await supabase.auth.resend({
+                    type: 'signup',
+                    email: user?.email ?? '',
+                  });
+                  if (error) toast.error(error.message);
+                  else toast.success('Verification email resent!');
+                }}
+                className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 text-[10px] font-bold rounded-lg transition-all uppercase tracking-wider"
+              >
+                Resend
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Page content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
           {children}
