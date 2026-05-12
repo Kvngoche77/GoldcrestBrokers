@@ -86,18 +86,31 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
+    console.log('Registration started for:', data.email);
+    
     try {
+      // 1. Check referral code if provided
       let referredById: string | undefined;
       if (data.referral_code) {
-        const { data: referrer } = await supabase
+        console.log('Checking referral code:', data.referral_code);
+        const { data: referrer, error: refError } = await supabase
           .from('profiles')
           .select('id')
           .eq('referral_code', data.referral_code.toUpperCase())
           .maybeSingle();
-        if (referrer) referredById = referrer.id;
+        
+        if (refError) console.error('Referral check error:', refError);
+        if (referrer) {
+          referredById = referrer.id;
+          console.log('Found referrer:', referredById);
+        } else {
+          console.log('No referrer found for code:', data.referral_code);
+        }
       }
 
-      const { data: authData, error } = await supabase.auth.signUp({
+      // 2. Sign up the user
+      console.log('Calling supabase.auth.signUp...');
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -108,15 +121,27 @@ export default function RegisterPage() {
         },
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (signUpError) {
+        console.error('Signup error:', signUpError);
+        toast.error(signUpError.message);
         return;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!authData.user) {
+        console.error('Signup succeeded but no user returned');
+        toast.error('Signup failed to return user data. Please try logging in.');
+        return;
+      }
 
-      if (authData.user) {
-        // Update profile with location and referral info
+      console.log('Signup successful, user ID:', authData.user.id);
+
+      // 3. Wait for the profile trigger and update the profile
+      // We use a small retry loop to handle potential delays in the DB trigger
+      let profileUpdated = false;
+      let retries = 5;
+      
+      while (retries > 0 && !profileUpdated) {
+        console.log(`Updating profile (Attempts left: ${retries})...`);
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ 
@@ -127,18 +152,55 @@ export default function RegisterPage() {
           })
           .eq('id', authData.user.id);
         
-        if (!updateError && referredById) {
-          await supabase.from('referrals').insert({
-            referrer_id: referredById,
-            referred_id: authData.user.id,
-          });
+        if (updateError) {
+          console.error('Profile update error:', updateError);
+          // If it's a "row not found" type of error, we wait and retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          retries--;
+        } else {
+          // Verify that the update actually happened (Supabase update returns success even if 0 rows matched)
+          // We can check if the row exists
+          const { data: checkData } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', authData.user.id)
+            .maybeSingle();
+          
+          if (checkData) {
+            profileUpdated = true;
+            console.log('Profile updated successfully');
+          } else {
+            console.log('Profile row not found yet, retrying...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            retries--;
+          }
         }
       }
 
+      if (!profileUpdated) {
+        console.warn('Profile update failed after retries, but user was created.');
+        toast.error('Account created, but profile details could not be saved. You can update them in your dashboard.');
+      }
+
+      // 4. Handle referral record insertion
+      if (profileUpdated && referredById) {
+        console.log('Inserting referral record...');
+        const { error: referralError } = await supabase.from('referrals').insert({
+          referrer_id: referredById,
+          referred_id: authData.user.id,
+        });
+        if (referralError) console.error('Referral insertion error:', referralError);
+      }
+
       toast.success('Account created! Welcome to Goldcrest Broker.');
-      router.push('/auth/kyc-onboarding');
+      
+      // Delay redirect slightly to ensure state is settled
+      setTimeout(() => {
+        router.push('/auth/kyc-onboarding');
+      }, 1500);
+
     } catch (err) {
-      console.error('Signup error:', err);
+      console.error('Unexpected signup error:', err);
       toast.error('An unexpected error occurred during signup');
     } finally {
       setIsLoading(false);

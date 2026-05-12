@@ -25,6 +25,7 @@ export type Database = {
           kyc_status: 'pending' | 'verified' | 'rejected';
           phone: string;
           country: string;
+          address: string;
           created_at: string;
           updated_at: string;
         };
