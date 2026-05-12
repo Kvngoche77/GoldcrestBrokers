@@ -104,7 +104,9 @@ export default function DashboardPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Welcome back, {profile?.username ?? 'Investor'}!</h1>
+        <h1 className="text-2xl font-bold text-white">
+          Welcome back, {profile?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || 'Investor'}!
+        </h1>
         <p className="text-slate-400 text-sm mt-1">Here&apos;s what&apos;s happening with your portfolio today.</p>
       </div>
 

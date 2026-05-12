@@ -81,7 +81,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!user) return null;
 
-  const initials = profile?.username?.slice(0, 2).toUpperCase() ?? profile?.full_name?.slice(0, 2).toUpperCase() ?? 'U';
+  const displayUsername = profile?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || 'Investor';
+  const displayFullName = profile?.full_name || user?.user_metadata?.full_name || 'Investor';
+  const initials = displayUsername.slice(0, 2).toUpperCase();
 
   return (
     <div className="min-h-screen bg-[#040c18] flex">
@@ -141,7 +143,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">@{profile?.username ?? 'User'}</p>
+              <p className="text-sm font-semibold text-white truncate">@{displayUsername}</p>
               <p className="text-xs text-slate-400">${Number(profile?.balance ?? 0).toFixed(2)}</p>
             </div>
           </div>
@@ -173,7 +175,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="hidden sm:block">
             <p className="text-sm text-slate-400">
               Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
-              <span className="text-white font-medium">{profile?.username ?? profile?.full_name ?? 'Investor'}</span>
+              <span className="text-white font-medium">{displayUsername}</span>
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -193,7 +195,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Email Verification Warning */}
-        {!user?.email_confirmed_at && (
+        {user && !user.email_confirmed_at && (
           <div className="px-4 sm:px-6 py-3 bg-amber-500/10 border-b border-amber-500/20">
             <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
