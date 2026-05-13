@@ -368,7 +368,7 @@ export default function RegisterPage() {
                   Sign up with Google
                 </button>
               </motion.div>
-            ) : (
+            ) : step === 2 ? (
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2">
@@ -427,6 +427,13 @@ export default function RegisterPage() {
                   {errors.terms && <p className="mt-1 text-xs text-red-400">{errors.terms.message}</p>}
                 </div>
 
+                <div className="flex gap-3 mt-4">
+                  <button type="button" onClick={prevStep} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-all">
+                    Back
+                  </button>
+                  <button type="submit" disabled={isLoading} className="flex-[2] py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue">
+                    {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Complete Sign Up'}
+                  </button>
                 </div>
               </motion.div>
             ) : (
