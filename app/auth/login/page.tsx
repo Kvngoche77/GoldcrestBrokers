@@ -52,6 +52,20 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      toast.error(err.message || 'Google Sign-in failed');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#040c18] hero-gradient grid-pattern flex items-center justify-center p-4">
       {/* Background orbs */}
@@ -139,6 +153,24 @@ export default function LoginPage() {
                   <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </>
               )}
+            </button>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-[#060d1a] px-2 text-slate-500">Or continue with</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-3 border border-white/10"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+              Sign in with Google
             </button>
           </form>
 

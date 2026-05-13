@@ -24,7 +24,12 @@ export type Database = {
           is_admin: boolean;
           kyc_status: 'pending' | 'verified' | 'rejected';
           phone: string;
+          phone_country_code: string;
           country: string;
+          city: string;
+          street: string;
+          postal_code: string;
+          house_number: string;
           address: string;
           created_at: string;
           updated_at: string;
