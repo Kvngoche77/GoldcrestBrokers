@@ -29,7 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string, retries = 3): Promise<void> => {
+  const fetchProfile = async (currentUser: User, retries = 3): Promise<void> => {
+    const userId = currentUser.id;
     console.log(`AuthContext: Fetching profile for ID: ${userId} (Attempt: ${4 - retries})`);
     try {
       const { data, error } = await supabase
@@ -49,8 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       } else {
         // Profile is missing or incomplete (e.g. missing username)
-        const fallbackUsername = user?.user_metadata?.username || user?.email?.split('@')[0] || 'user';
-        const fallbackFullName = user?.user_metadata?.full_name || '';
+        const fallbackUsername = currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user';
+        const fallbackFullName = currentUser.user_metadata?.full_name || '';
         
         console.log(`AuthContext: Profile ${data ? 'incomplete' : 'not found'}, attempting to fix/create...`);
         
@@ -81,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) await fetchProfile(user);
   };
 
   useEffect(() => {
@@ -89,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        await fetchProfile(session.user);
       } else {
         setLoading(false);
       }
@@ -102,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user);
       } else {
         setProfile(null);
         setLoading(false);

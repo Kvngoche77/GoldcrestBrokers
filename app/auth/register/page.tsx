@@ -96,14 +96,14 @@ const countries = [
 ];
 
 const countryCodes = [
-  { code: '1', country: 'US/CA' }, { code: '44', country: 'GB' }, { code: '234', country: 'NG' }, { code: '27', country: 'ZA' },
-  { code: '91', country: 'IN' }, { code: '61', country: 'AU' }, { code: '49', country: 'DE' }, { code: '33', country: 'FR' },
-  { code: '81', country: 'JP' }, { code: '65', country: 'SG' }, { code: '971', country: 'AE' }, { code: '966', country: 'SA' },
-  { code: '55', country: 'BR' }, { code: '52', country: 'MX' }, { code: '7', country: 'RU' }, { code: '34', country: 'ES' },
-  { code: '39', country: 'IT' }, { code: '86', country: 'CN' }, { code: '90', country: 'TR' }, { code: '82', country: 'KR' },
-  { code: '41', country: 'CH' }, { code: '31', country: 'NL' }, { code: '46', country: 'SE' }, { code: '60', country: 'MY' },
-  { code: '66', country: 'TH' }, { code: '62', country: 'ID' }, { code: '63', country: 'PH' }, { code: '84', country: 'VN' },
-  { code: '92', country: 'PK' }, { code: '20', country: 'EG' }, { code: '233', country: 'GH' }, { code: '254', country: 'KE' }
+  { code: '1', country: 'US/CA', flag: '🇺🇸' }, { code: '44', country: 'GB', flag: '🇬🇧' }, { code: '234', country: 'NG', flag: '🇳🇬' }, { code: '27', country: 'ZA', flag: '🇿🇦' },
+  { code: '91', country: 'IN', flag: '🇮🇳' }, { code: '61', country: 'AU', flag: '🇦🇺' }, { code: '49', country: 'DE', flag: '🇩🇪' }, { code: '33', country: 'FR', flag: '🇫🇷' },
+  { code: '81', country: 'JP', flag: '🇯🇵' }, { code: '65', country: 'SG', flag: '🇸🇬' }, { code: '971', country: 'AE', flag: '🇦🇪' }, { code: '966', country: 'SA', flag: '🇸🇦' },
+  { code: '55', country: 'BR', flag: '🇧🇷' }, { code: '52', country: 'MX', flag: '🇲🇽' }, { code: '7', country: 'RU', flag: '🇷🇺' }, { code: '34', country: 'ES', flag: '🇪🇸' },
+  { code: '39', country: 'IT', flag: '🇮🇹' }, { code: '86', country: 'CN', flag: '🇨🇳' }, { code: '90', country: 'TR', flag: '🇹🇷' }, { code: '82', country: 'KR', flag: '🇰🇷' },
+  { code: '41', country: 'CH', flag: '🇨🇭' }, { code: '31', country: 'NL', flag: '🇳🇱' }, { code: '46', country: 'SE', flag: '🇸🇪' }, { code: '60', country: 'MY', flag: '🇲🇾' },
+  { code: '66', country: 'TH', flag: '🇹🇭' }, { code: '62', country: 'ID', flag: '🇮🇩' }, { code: '63', country: 'PH', flag: '🇵🇭' }, { code: '84', country: 'VN', flag: '🇻🇳' },
+  { code: '92', country: 'PK', flag: '🇵🇰' }, { code: '20', country: 'EG', flag: '🇪🇬' }, { code: '233', country: 'GH', flag: '🇬🇭' }, { code: '254', country: 'KE', flag: '🇰🇪' }
 ].sort((a, b) => a.country.localeCompare(b.country));
 
 type FormData = z.infer<typeof schema>;
@@ -207,7 +207,8 @@ export default function RegisterPage() {
       }
 
       toast.dismiss(loadingToast);
-      setStep(3); // Show verification success state
+      toast.success('Account created! Let\'s verify your identity.');
+      router.push('/auth/kyc-onboarding');
 
     } catch (err: any) {
       toast.dismiss(loadingToast);
@@ -256,15 +257,15 @@ export default function RegisterPage() {
         <div className="glass-strong rounded-3xl p-8">
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-2">
-              {[1, 2, 3].map((i) => (
+              {[1, 2].map((i) => (
                 <div key={i} className={`h-1 flex-1 rounded-full ${i <= step ? 'bg-blue-500' : 'bg-white/10'}`} />
               ))}
             </div>
             <h1 className="text-2xl font-bold text-white mb-1">
-              {step === 1 ? 'Personal Details' : step === 2 ? 'Location Details' : 'Verify Email'}
+              {step === 1 ? 'Personal Details' : 'Location Details'}
             </h1>
             <p className="text-slate-400 text-sm">
-              {step === 1 ? 'Step 1 of 2: Let\'s get to know you' : step === 2 ? 'Step 2 of 2: Where are you based?' : 'Final Step: Check your inbox'}
+              {step === 1 ? 'Step 1 of 2: Let\'s get to know you' : 'Step 2 of 2: Where are you based?'}
             </p>
           </div>
 
@@ -305,9 +306,9 @@ export default function RegisterPage() {
                   <div className="flex gap-2">
                     <div className="relative w-32 flex-shrink-0">
                       <select {...register('phone_country_code')} className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-all appearance-none">
-                        <option value="">Code</option>
+                        <option value="">Flag</option>
                         {countryCodes.map((c) => (
-                          <option key={c.code} value={c.code}>+{c.code} ({c.country})</option>
+                          <option key={c.code} value={c.code}>{c.flag} +{c.code}</option>
                         ))}
                       </select>
                     </div>
@@ -368,7 +369,7 @@ export default function RegisterPage() {
                   Sign up with Google
                 </button>
               </motion.div>
-            ) : step === 2 ? (
+            ) : (
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2">
@@ -435,25 +436,6 @@ export default function RegisterPage() {
                     {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'Complete Sign Up'}
                   </button>
                 </div>
-              </motion.div>
-            ) : (
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-4">
-                <div className="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-6">
-                  <Mail size={40} className="text-blue-500 animate-bounce" />
-                </div>
-                <h2 className="text-xl font-bold text-white mb-3">Check your email</h2>
-                <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-                  We've sent a verification link to your email. Please click the link to activate your account and start trading.
-                </p>
-                <button
-                  onClick={() => router.push('/auth/login')}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all glow-blue"
-                >
-                  Return to Login
-                </button>
-                <p className="mt-6 text-xs text-slate-500">
-                  Didn't receive the email? Check your spam folder or contact support.
-                </p>
               </motion.div>
             )}
           </form>
