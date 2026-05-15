@@ -18,7 +18,8 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [creditModalUser, setCreditModalUser] = useState<Profile | null>(null);
   const [creditAmount, setCreditAmount] = useState('');
-  const [creditDescription, setCreditDescription] = useState('Manual bonus credit');
+  const [creditDescription, setCreditDescription] = useState('Manual balance update');
+  const [updateMode, setUpdateMode] = useState<'add' | 'set'>('add');
 
   const { data: users = [], isLoading } = useQuery({ queryKey: ['admin-users'], queryFn: fetchUsers });
 
@@ -30,8 +31,9 @@ export default function AdminUsersPage() {
   });
 
   const updateBalanceMutation = useMutation({
-    mutationFn: async ({ user, amount, description }: { user: Profile; amount: number; description: string }) => {
-      const newBalance = user.balance + amount;
+    mutationFn: async ({ user, amount, description, mode }: { user: Profile; amount: number; description: string; mode: 'add' | 'set' }) => {
+      const newBalance = mode === 'add' ? user.balance + amount : amount;
+      const diff = mode === 'add' ? amount : amount - user.balance;
       
       // Update balance
       const { error: profileError } = await supabase
@@ -46,12 +48,12 @@ export default function AdminUsersPage() {
         .from('transactions')
         .insert({
           user_id: user.id,
-          type: 'deposit', // using deposit as a general credit
-          amount,
+          type: diff >= 0 ? 'deposit' : 'withdrawal',
+          amount: Math.abs(diff),
           status: 'completed',
-          description: description || 'Manual credit by admin',
-          reference: `CREDIT-${Date.now()}`,
-          metadata: { is_manual: true }
+          description: description || `Manual balance ${mode === 'add' ? 'credit' : 'update'} by admin`,
+          reference: `ADMN-${Date.now()}`,
+          metadata: { is_manual: true, update_mode: mode, prev_balance: user.balance, new_balance: newBalance }
         });
         
       if (txError) throw txError;
@@ -60,10 +62,10 @@ export default function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setCreditModalUser(null);
       setCreditAmount('');
-      toast.success('Balance credited successfully');
+      toast.success('Balance updated successfully');
     },
-    onError: () => {
-      toast.error('Failed to credit balance');
+    onError: (err: any) => {
+      toast.error(err.message || 'Failed to update balance');
     }
   });
 
@@ -124,7 +126,7 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="py-3.5 px-5 text-right">
                     <button
-                      onClick={() => { setCreditModalUser(user); setCreditAmount(''); setCreditDescription('Manual bonus credit'); }}
+                      onClick={() => { setCreditModalUser(user); setCreditAmount(''); setCreditDescription('Manual balance update'); setUpdateMode('add'); }}
                       className="text-sm font-semibold text-white hover:text-blue-400 transition-colors group flex items-center justify-end gap-1 ml-auto"
                     >
                       ${Number(user.balance).toFixed(2)}
@@ -181,15 +183,32 @@ export default function AdminUsersPage() {
             </div>
 
             <div className="space-y-4">
+              <div className="flex p-1 bg-white/[0.03] rounded-xl border border-white/10">
+                <button
+                  onClick={() => setUpdateMode('add')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${updateMode === 'add' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Add to Balance
+                </button>
+                <button
+                  onClick={() => setUpdateMode('set')}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${updateMode === 'set' ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/20' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Set Absolute Balance
+                </button>
+              </div>
+
               <div>
-                <label className="text-xs text-slate-400 mb-1.5 block">Amount to Add (USD)</label>
+                <label className="text-xs text-slate-400 mb-1.5 block">
+                  {updateMode === 'add' ? 'Amount to Add (USD)' : 'New Total Balance (USD)'}
+                </label>
                 <div className="relative">
                   <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="number"
                     value={creditAmount}
                     onChange={(e) => setCreditAmount(e.target.value)}
-                    placeholder="100.00"
+                    placeholder={updateMode === 'add' ? "100.00" : creditModalUser.balance.toString()}
                     className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-8 pr-4 py-3 text-sm text-white focus:border-blue-500/50 focus:outline-none"
                   />
                 </div>
@@ -201,7 +220,7 @@ export default function AdminUsersPage() {
                   type="text"
                   value={creditDescription}
                   onChange={(e) => setCreditDescription(e.target.value)}
-                  placeholder="e.g. Deposit Bonus"
+                  placeholder="e.g. Manual correction"
                   className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500/50 focus:outline-none"
                 />
               </div>
@@ -214,11 +233,11 @@ export default function AdminUsersPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => updateBalanceMutation.mutate({ user: creditModalUser, amount: Number(creditAmount), description: creditDescription })}
-                  disabled={!creditAmount || Number(creditAmount) <= 0 || updateBalanceMutation.isPending}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl transition-colors font-medium text-sm glow-blue"
+                  onClick={() => updateBalanceMutation.mutate({ user: creditModalUser, amount: Number(creditAmount), description: creditDescription, mode: updateMode })}
+                  disabled={!creditAmount || (updateMode === 'add' && Number(creditAmount) <= 0) || updateBalanceMutation.isPending}
+                  className={`flex-1 py-3 ${updateMode === 'add' ? 'bg-blue-600 hover:bg-blue-500' : 'bg-amber-600 hover:bg-amber-500'} disabled:opacity-50 text-white rounded-xl transition-colors font-medium text-sm glow-blue`}
                 >
-                  {updateBalanceMutation.isPending ? 'Processing...' : 'Confirm Credit'}
+                  {updateBalanceMutation.isPending ? 'Processing...' : 'Confirm Update'}
                 </button>
               </div>
             </div>

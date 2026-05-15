@@ -4,17 +4,24 @@ import React from 'react';
 import { useTradeStore } from '@/hooks/use-trade-store';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function OrderBook() {
   const { orderBook, selectedMarket, setOrderPrice } = useTradeStore();
 
+  const maxTotal = Math.max(
+    ...orderBook.asks.map(a => a.total),
+    ...orderBook.bids.map(b => b.total),
+    1
+  );
+
   return (
-    <div className="flex flex-col h-full overflow-hidden select-none">
+    <div className="flex flex-col h-full overflow-hidden select-none bg-[#0b0e11]">
       <div className="px-3 h-9 flex items-center border-b border-[#1e2329] bg-[#161a1e]">
         <span className="text-[12px] font-bold text-[#eaecef]">Order Book</span>
       </div>
       
-      <div className="px-3 py-1 flex items-center text-[11px] text-[#848e9c] font-medium border-b border-[#1e2329]">
+      <div className="px-3 py-1.5 flex items-center text-[10px] text-[#848e9c] font-bold uppercase tracking-wider border-b border-[#1e2329]">
         <span className="flex-1">Price({selectedMarket.quoteAsset})</span>
         <span className="w-20 text-right">Amount({selectedMarket.baseAsset})</span>
         <span className="w-20 text-right">Total</span>
@@ -24,54 +31,85 @@ export function OrderBook() {
         <div className="flex flex-col min-h-0">
           {/* Asks (Sell) */}
           <div className="flex flex-col-reverse">
-            {orderBook.asks.map((ask, i) => (
-              <div 
-                key={`ask-${i}`} 
-                className="relative h-5 flex items-center px-3 cursor-pointer hover:bg-[#1e2329] transition-colors group"
-                onClick={() => setOrderPrice(ask.price.toString())}
-              >
-                <div 
-                  className="absolute right-0 top-0 bottom-0 bg-[#f6465d]/10 transition-all duration-300" 
-                  style={{ width: `${Math.min((ask.amount / 2) * 100, 100)}%` }}
-                />
-                <span className="flex-1 text-[12px] text-[#f6465d] font-mono z-10 tracking-tighter">{ask.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <span className="w-20 text-right text-[12px] text-[#eaecef] font-mono z-10">{ask.amount.toFixed(4)}</span>
-                <span className="w-20 text-right text-[12px] text-[#848e9c] font-mono z-10">{ask.total.toFixed(4)}</span>
-              </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {orderBook.asks.map((ask, i) => (
+                <motion.div 
+                  initial={{ opacity: 0.5 }}
+                  animate={{ opacity: 1 }}
+                  key={`ask-${ask.price}-${i}`} 
+                  className="relative h-[22px] flex items-center px-3 cursor-pointer hover:bg-[#2b3139] transition-colors group"
+                  onClick={() => setOrderPrice(ask.price.toString())}
+                >
+                  <div 
+                    className="absolute right-0 top-[1px] bottom-[1px] bg-[#f6465d]/15 transition-all duration-500 ease-out" 
+                    style={{ width: `${(ask.total / maxTotal) * 100}%` }}
+                  />
+                  <span className="flex-1 text-[12px] text-[#f6465d] font-mono z-10 tracking-tighter tabular-nums">
+                    {ask.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="w-20 text-right text-[12px] text-[#eaecef] font-mono z-10 tabular-nums">
+                    {ask.amount.toFixed(4)}
+                  </span>
+                  <span className="w-20 text-right text-[12px] text-[#848e9c] font-mono z-10 tabular-nums">
+                    {ask.total.toFixed(2)}
+                  </span>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
 
           {/* Current Market Price */}
-          <div className="py-2 px-3 bg-[#1e2329]/30 flex items-center gap-2 border-y border-[#1e2329]">
-            <span className={cn(
-              "text-[18px] font-bold font-mono tracking-tighter",
-              selectedMarket.change24h >= 0 ? "text-[#0ecb81]" : "text-[#f6465d]"
+          <div className="py-3 px-3 bg-[#1e2329]/40 flex items-center justify-between border-y border-[#1e2329] group">
+            <div className="flex items-center gap-2">
+              <span className={cn(
+                "text-[20px] font-bold font-mono tracking-tighter tabular-nums leading-none",
+                selectedMarket.change24h >= 0 ? "text-[#0ecb81]" : "text-[#f6465d]"
+              )}>
+                {selectedMarket.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <span className="text-[11px] text-[#848e9c] font-mono mt-0.5 tracking-tight tabular-nums">
+                ${selectedMarket.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className={cn(
+              "text-[11px] font-bold px-1.5 py-0.5 rounded",
+              selectedMarket.change24h >= 0 ? "text-[#0ecb81] bg-[#0ecb81]/10" : "text-[#f6465d] bg-[#f6465d]/10"
             )}>
-              {selectedMarket.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
-            <span className="text-[11px] text-[#848e9c] font-mono mt-0.5 tracking-tight">${selectedMarket.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              {selectedMarket.change24h >= 0 ? '+' : ''}{selectedMarket.change24h.toFixed(2)}%
+            </div>
           </div>
 
           {/* Bids (Buy) */}
           <div className="flex flex-col">
-            {orderBook.bids.map((bid, i) => (
-              <div 
-                key={`bid-${i}`} 
-                className="relative h-5 flex items-center px-3 cursor-pointer hover:bg-[#1e2329] transition-colors group"
-                onClick={() => setOrderPrice(bid.price.toString())}
-              >
-                <div 
-                  className="absolute right-0 top-0 bottom-0 bg-[#0ecb81]/10 transition-all duration-300" 
-                  style={{ width: `${Math.min((bid.amount / 2) * 100, 100)}%` }}
-                />
-                <span className="flex-1 text-[12px] text-[#0ecb81] font-mono z-10 tracking-tighter">{bid.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                <span className="w-20 text-right text-[12px] text-[#eaecef] font-mono z-10">{bid.amount.toFixed(4)}</span>
-                <span className="w-20 text-right text-[12px] text-[#848e9c] font-mono z-10">{bid.total.toFixed(4)}</span>
-              </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {orderBook.bids.map((bid, i) => (
+                <motion.div 
+                  initial={{ opacity: 0.5 }}
+                  animate={{ opacity: 1 }}
+                  key={`bid-${bid.price}-${i}`} 
+                  className="relative h-[22px] flex items-center px-3 cursor-pointer hover:bg-[#2b3139] transition-colors group"
+                  onClick={() => setOrderPrice(bid.price.toString())}
+                >
+                  <div 
+                    className="absolute right-0 top-[1px] bottom-[1px] bg-[#0ecb81]/15 transition-all duration-500 ease-out" 
+                    style={{ width: `${(bid.total / maxTotal) * 100}%` }}
+                  />
+                  <span className="flex-1 text-[12px] text-[#0ecb81] font-mono z-10 tracking-tighter tabular-nums">
+                    {bid.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="w-20 text-right text-[12px] text-[#eaecef] font-mono z-10 tabular-nums">
+                    {bid.amount.toFixed(4)}
+                  </span>
+                  <span className="w-20 text-right text-[12px] text-[#848e9c] font-mono z-10 tabular-nums">
+                    {bid.total.toFixed(2)}
+                  </span>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         </div>
       </ScrollArea>
     </div>
   );
 }
+

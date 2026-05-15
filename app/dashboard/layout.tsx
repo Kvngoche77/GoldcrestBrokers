@@ -196,36 +196,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Email Verification Warning */}
         {user && !user.email_confirmed_at && (
-          <div className="px-4 sm:px-6 py-3 bg-amber-500/10 border-b border-amber-500/20">
-            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                  <Shield size={16} className="text-amber-500" />
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            className="px-4 sm:px-6 py-4 bg-gradient-to-r from-amber-500/20 via-amber-600/10 to-amber-500/20 border-b border-amber-500/30 relative overflow-hidden"
+          >
+            {/* Animated background glow */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(245,158,11,0.1),transparent_70%)] animate-pulse" />
+            
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center flex-shrink-0 border border-amber-500/30 shadow-lg shadow-amber-500/10">
+                  <Shield size={24} className="text-amber-500 animate-bounce-slow" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-amber-200">
-                    Your email is not verified.
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-amber-500/80 mt-0.5 truncate">
-                    Please check your inbox ({user?.email}) to verify your account and unlock all features.
+                  <h4 className="text-sm sm:text-base font-bold text-amber-100 flex items-center gap-2">
+                    Action Required: Verify Your Identity
+                    <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                  </h4>
+                  <p className="text-xs text-amber-200/70 mt-1 leading-relaxed">
+                    A verification link was sent to <span className="text-amber-400 font-bold underline underline-offset-2">{user?.email}</span>. 
+                    Please confirm your email to unlock all trading features and secure your account.
                   </p>
                 </div>
               </div>
-              <button 
-                onClick={async () => {
-                  const { error } = await supabase.auth.resend({
-                    type: 'signup',
-                    email: user?.email ?? '',
-                  });
-                  if (error) toast.error(error.message);
-                  else toast.success('Verification email resent!');
-                }}
-                className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 text-[10px] font-bold rounded-lg transition-all uppercase tracking-wider"
-              >
-                Resend
-              </button>
+              
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <button 
+                  onClick={async () => {
+                    const { error } = await supabase.auth.resend({
+                      type: 'signup',
+                      email: user?.email ?? '',
+                    });
+                    if (error) toast.error(error.message);
+                    else toast.success('Verification email resent! Please check your spam folder.');
+                  }}
+                  className="flex-1 sm:flex-none px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-amber-900/20 uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  Resend Email
+                </button>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="flex-1 sm:flex-none px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl transition-all border border-white/10 uppercase tracking-widest"
+                >
+                  I've Verified
+                </button>
+              </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Page content */}

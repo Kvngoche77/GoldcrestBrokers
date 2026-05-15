@@ -63,18 +63,37 @@ export default function AdminCopyTradingPage() {
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, { upsert: true });
-      if (uploadError) throw uploadError;
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(uploadError.message === 'Bucket not found' 
+          ? 'Storage bucket "avatars" does not exist in Supabase.' 
+          : uploadError.message);
+      }
+
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
       setFormData(prev => ({ ...prev, avatar_url: data.publicUrl }));
       setImagePreview(data.publicUrl);
       toast.success('Image uploaded!');
     } catch (err: any) {
+      console.error('Caught upload error:', err);
       // Fallback: show preview locally even if bucket isn't configured
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setImagePreview(result);
-        toast.error('Storage bucket not configured. Using local preview only.');
+        
+        if (err.message.includes('bucket') || err.message.includes('Bucket')) {
+          toast.error(
+            <div>
+              <p className="font-bold">Storage Bucket Error</p>
+              <p className="text-xs">The "avatars" bucket is missing. Please create it in your Supabase Dashboard or use an image URL instead.</p>
+            </div>, 
+            { duration: 6000 }
+          );
+        } else {
+          toast.error('Upload failed. Using local preview.');
+        }
       };
       reader.readAsDataURL(file);
     } finally {
