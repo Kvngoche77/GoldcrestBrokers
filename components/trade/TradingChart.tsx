@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType, ISeriesApi, CandlestickData } from 'lightweight-charts';
+import { createChart, ColorType, ISeriesApi, CandlestickData, CandlestickSeries } from 'lightweight-charts';
 import { useTradeStore } from '@/hooks/use-trade-store';
 
 export function TradingChart() {
@@ -47,7 +47,7 @@ export function TradingChart() {
       height: chartContainerRef.current.clientHeight,
     });
 
-    const newSeries = newChart.addCandlestickSeries({
+    const newSeries = newChart.addSeries(CandlestickSeries, {
       upColor: '#0ecb81',
       downColor: '#f6465d',
       borderVisible: false,
@@ -56,7 +56,7 @@ export function TradingChart() {
     });
 
     setChart(newChart);
-    setSeries(newSeries);
+    setSeries(newSeries as any);
 
     const handleResize = () => {
       if (chartContainerRef.current) {
