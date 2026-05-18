@@ -147,3 +147,19 @@ export type KYCSubmission = {
   created_at: string;
   updated_at: string;
 };
+
+export type Trader = {
+  id: string;
+  name: string;
+  avatar_url: string;
+  bio: string;
+  roi_percent: number;
+  win_rate: number;
+  total_followers: number;
+  subscription_rate: number;
+  is_active: boolean;
+  trades_won: number;
+  trades_lost: number;
+  created_at?: string;
+  updated_at?: string;
+};

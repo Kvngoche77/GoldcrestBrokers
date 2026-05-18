@@ -1,6 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowUpRight, ArrowDownLeft, TrendingUp, Wallet, Users, Clock, ArrowRight, Plus, Newspaper, Headphones, LineChart, Copy } from 'lucide-react';
@@ -8,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { PortfolioChart } from '@/components/sections/PortfolioChart';
 import type { Transaction, Investment, InvestmentPlan } from '@/types';
+import toast from 'react-hot-toast';
 
 function StatCard({
   title, value, change, icon: Icon, color, href,
@@ -35,7 +37,51 @@ function StatCard({
 }
 
 export default function DashboardPage() {
+  const queryClient = useQueryClient();
   const { user, profile, refreshProfile } = useAuth();
+
+  // Auto-credit daily profits on load
+  useEffect(() => {
+    const profileId = profile?.id;
+    if (!profileId) return;
+
+    let isMounted = true;
+
+    async function autoCreditProfits() {
+      try {
+        const { data, error } = await supabase.rpc('process_user_profits', {
+          target_user_id: profileId,
+        });
+
+        if (error) {
+          console.error('Error auto-crediting profits:', error);
+          return;
+        }
+
+        const result = data as { success: boolean; credited_count: number; total_credited_amount: number };
+        
+        if (isMounted && result && result.success && result.credited_count > 0) {
+          toast.success(
+            `Daily profit credited! +$${Number(result.total_credited_amount).toFixed(2)} added to your balance.`,
+            { duration: 5000 }
+          );
+          // Refresh user profile details
+          await refreshProfile();
+          // Invalidate React Query cache for investments and transactions to refresh UI lists
+          queryClient.invalidateQueries({ queryKey: ['investments', profileId] });
+          queryClient.invalidateQueries({ queryKey: ['transactions', profileId] });
+        }
+      } catch (err) {
+        console.error('Failed to run auto-credit:', err);
+      }
+    }
+
+    autoCreditProfits();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profile?.id, queryClient]);
 
   const { data: investments = [] } = useQuery({
     queryKey: ['investments', profile?.id],

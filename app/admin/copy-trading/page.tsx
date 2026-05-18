@@ -21,6 +21,8 @@ type Trader = {
   total_followers: number;
   subscription_rate: number;
   is_active: boolean;
+  trades_won: number;
+  trades_lost: number;
 };
 
 export default function AdminCopyTradingPage() {
@@ -43,7 +45,9 @@ export default function AdminCopyTradingPage() {
     total_followers: 0,
     subscription_rate: 50,
     is_active: true,
-    avatar_url: ''
+    avatar_url: '',
+    trades_won: 0,
+    trades_lost: 0
   });
 
   // Upload image to Supabase Storage
@@ -183,7 +187,9 @@ export default function AdminCopyTradingPage() {
       total_followers: 0,
       subscription_rate: 50,
       is_active: true,
-      avatar_url: ''
+      avatar_url: '',
+      trades_won: 0,
+      trades_lost: 0
     });
     setImagePreview(null);
     setUrlMode(false);
@@ -295,7 +301,7 @@ export default function AdminCopyTradingPage() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <p className="text-sm font-bold text-emerald-400">+{trader.roi_percent}%</p>
-                      <p className="text-[10px] text-slate-500">{trader.win_rate}% Win Rate</p>
+                      <p className="text-[10px] text-slate-400 font-semibold">{trader.win_rate}% ({trader.trades_won || 0}W / {trader.trades_lost || 0}L)</p>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <p className="text-sm font-bold text-white">{trader.total_followers.toLocaleString()}</p>
@@ -469,6 +475,38 @@ export default function AdminCopyTradingPage() {
                           step="0.1"
                           value={formData.win_rate}
                           onChange={e => setFormData({...formData, win_rate: Number(e.target.value)})}
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Trades Won</label>
+                        <input 
+                          type="number"
+                          value={formData.trades_won || 0}
+                          onChange={e => {
+                            const won = Number(e.target.value);
+                            const lost = formData.trades_lost || 0;
+                            const total = won + lost;
+                            const newWinRate = total > 0 ? Number(((won / total) * 100).toFixed(1)) : formData.win_rate;
+                            setFormData({...formData, trades_won: won, win_rate: newWinRate});
+                          }}
+                          className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Trades Lost</label>
+                        <input 
+                          type="number"
+                          value={formData.trades_lost || 0}
+                          onChange={e => {
+                            const lost = Number(e.target.value);
+                            const won = formData.trades_won || 0;
+                            const total = won + lost;
+                            const newWinRate = total > 0 ? Number(((won / total) * 100).toFixed(1)) : formData.win_rate;
+                            setFormData({...formData, trades_lost: lost, win_rate: newWinRate});
+                          }}
                           className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
                         />
                       </div>

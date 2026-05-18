@@ -22,6 +22,8 @@ type Trader = {
   total_followers: number;
   subscription_rate: number;
   is_active: boolean;
+  trades_won: number;
+  trades_lost: number;
 };
 
 type Subscription = {
@@ -272,14 +274,30 @@ export default function CopyTradingPage() {
                 <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
                   {trader.bio}
                 </p>
-                <div className="grid grid-cols-2 gap-3 py-4 border-y border-white/[0.05]">
-                  <div>
-                    <p className="text-xs text-slate-500 mb-0.5 font-medium">Win Rate</p>
-                    <p className="text-sm font-bold text-white">{trader.win_rate}%</p>
+                <div className="py-4 border-y border-white/[0.05] space-y-3">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="text-slate-400">History (Wins / Losses)</span>
+                    <span className="text-emerald-400 font-bold">{trader.win_rate}% Win Rate</span>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-0.5 font-medium">Followers</p>
-                    <p className="text-sm font-bold text-white">{trader.total_followers.toLocaleString()}</p>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-emerald-400 text-xs font-bold w-12 text-left">{trader.trades_won || 0} W</span>
+                    <div className="flex-1 bg-red-500/20 rounded-full h-2 overflow-hidden flex">
+                      <div 
+                        className="bg-emerald-500 h-full rounded-full transition-all duration-500" 
+                        style={{ 
+                          width: `${
+                            ((trader.trades_won || 0) + (trader.trades_lost || 0)) > 0 
+                              ? ((trader.trades_won || 0) / ((trader.trades_won || 0) + (trader.trades_lost || 0))) * 100 
+                              : trader.win_rate
+                          }%` 
+                        }} 
+                      />
+                    </div>
+                    <span className="text-red-400 text-xs font-bold w-12 text-right">{trader.trades_lost || 0} L</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-slate-400 font-medium">
+                    <span>Total Trades: {(trader.trades_won || 0) + (trader.trades_lost || 0)}</span>
+                    <span>Followers: {trader.total_followers.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
