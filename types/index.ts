@@ -163,3 +163,12 @@ export type Trader = {
   created_at?: string;
   updated_at?: string;
 };
+
+export type WithdrawalAlert = {
+  id?: string;
+  username: string;
+  amount: number;
+  asset: string;
+  location?: string;
+  created_at?: string;
+};

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, ArrowDownToLine, ArrowUpFromLine,
-  TrendingUp, Settings, LogOut, Shield, ChevronRight, ShieldCheck, Bell, Box, Headphones, Copy
+  TrendingUp, Settings, LogOut, Shield, ChevronRight, ShieldCheck, Bell, Box, Headphones, Copy, Megaphone
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
@@ -21,6 +21,7 @@ const adminNav = [
   { href: '/admin/notifications', label: 'Notifications', icon: Bell },
   { href: '/admin/support', label: 'Support Tickets', icon: Headphones },
   { href: '/admin/copy-trading', label: 'Copy Traders', icon: Copy },
+  { href: '/admin/withdrawal-popups', label: 'Withdrawal Popups', icon: Megaphone },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

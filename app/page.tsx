@@ -14,6 +14,7 @@ import { Testimonials } from '@/components/sections/Testimonials';
 import { ReferralSection } from '@/components/sections/ReferralSection';
 import { WhyUsSection } from '@/components/sections/WhyUsSection';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
+import { WithdrawalPopup } from '@/components/ui/WithdrawalPopup';
 import { supabase } from '@/lib/supabase';
 import type { InvestmentPlan } from '@/types';
 
@@ -193,6 +194,7 @@ export default function HomePage() {
         <Testimonials />
         <Footer />
       </main>
+      <WithdrawalPopup />
     </>
   );
 }
