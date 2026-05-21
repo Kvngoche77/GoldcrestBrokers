@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
@@ -26,12 +26,42 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [securitySaving, setSecuritySaving] = useState(false);
 
+  // Transaction PIN state
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [currentPin, setCurrentPin] = useState('');
+  const [pinSaving, setPinSaving] = useState(false);
+  const [highlightPinSection, setHighlightPinSection] = useState(false);
+
   // 2FA state
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
   const [verifyCode, setVerifyCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [secretCopied, setSecretCopied] = useState(false);
+
+  // Deep linking for PIN setup & Security Tab
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'security') {
+        setActiveTab('security');
+        if (params.get('setupPin') === 'true') {
+          setHighlightPinSection(true);
+          setTimeout(() => {
+            const el = document.getElementById('transaction-pin-section');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 300);
+          // Turn off highlight glow after 4 seconds
+          setTimeout(() => setHighlightPinSection(false), 4000);
+        }
+      }
+    }
+  }, [profile]);
+
 
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +97,42 @@ export default function SettingsPage() {
       toast.error(err.message || 'Failed to update password');
     } finally {
       setSecuritySaving(false);
+    }
+  };
+
+  const handlePinSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile) return;
+
+    const isUpdating = !!profile.withdrawal_pin;
+    if (isUpdating) {
+      if (!currentPin) return toast.error('Please enter your current PIN');
+      if (currentPin !== profile.withdrawal_pin) return toast.error('Current PIN is incorrect');
+    }
+
+    if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+      return toast.error('PIN must be exactly 4 digits');
+    }
+    if (pin !== confirmPin) {
+      return toast.error('PINs do not match');
+    }
+
+    setPinSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ withdrawal_pin: pin })
+        .eq('id', profile.id);
+      if (error) throw error;
+      await refreshProfile();
+      toast.success(isUpdating ? 'Transaction PIN updated successfully' : 'Transaction PIN created successfully');
+      setPin('');
+      setConfirmPin('');
+      setCurrentPin('');
+    } catch {
+      toast.error('Failed to save Transaction PIN');
+    } finally {
+      setPinSaving(false);
     }
   };
 
@@ -222,41 +288,127 @@ export default function SettingsPage() {
 
       {/* Security Tab */}
       {activeTab === 'security' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-6 md:p-8">
-          <div className="max-w-md">
-            <h2 className="text-lg font-semibold text-white mb-6">Change Password</h2>
-            <form onSubmit={handleSecuritySave} className="space-y-4">
-              <div>
-                <label className="text-xs text-slate-400 mb-1.5 block">New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-slate-400 mb-1.5 block">Confirm New Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
-                />
-              </div>
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={securitySaving || !newPassword || !confirmPassword}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue"
-                >
-                  {securitySaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  Update Password
-                </button>
-              </div>
-            </form>
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          {/* Change Password Card */}
+          <div className="glass rounded-2xl p-6 md:p-8 flex flex-col justify-between border border-white/10">
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                <Lock size={18} className="text-blue-400" /> Change Password
+              </h2>
+              <p className="text-slate-400 text-xs mb-6">Update your account login password.</p>
+              <form onSubmit={handleSecuritySave} className="space-y-4">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">New Password</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">Confirm New Password</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
+                  />
+                </div>
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={securitySaving || !newPassword || !confirmPassword}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue"
+                  >
+                    {securitySaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    Update Password
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Transaction PIN Card */}
+          <div 
+            id="transaction-pin-section"
+            className={`glass rounded-2xl p-6 md:p-8 flex flex-col justify-between transition-all duration-500 ${
+              highlightPinSection 
+                ? 'border-2 border-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.35)] scale-[1.02]' 
+                : 'border border-white/10'
+            }`}
+          >
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                <ShieldCheck size={18} className="text-blue-400" /> Transaction PIN
+              </h2>
+              <p className="text-slate-400 text-xs mb-6">
+                {profile?.withdrawal_pin 
+                  ? 'Change your 4-digit security PIN for authorizing withdrawals and internal transfers.' 
+                  : 'Setup a secure 4-digit PIN to authorize transfers and withdrawal requests.'}
+              </p>
+              <form onSubmit={handlePinSave} className="space-y-4">
+                {profile?.withdrawal_pin && (
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1.5 block">Current Transaction PIN</label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={currentPin}
+                      onChange={e => setCurrentPin(e.target.value.replace(/\D/g, ''))}
+                      placeholder="••••"
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500/60 transition-all font-mono tracking-[0.3em]"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">
+                    {profile?.withdrawal_pin ? 'New Transaction PIN' : 'Transaction PIN (4 Digits)'}
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={pin}
+                    onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
+                    placeholder="••••"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500/60 transition-all font-mono tracking-[0.3em]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1.5 block">Confirm Transaction PIN</label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={confirmPin}
+                    onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ''))}
+                    placeholder="••••"
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-blue-500/60 transition-all font-mono tracking-[0.3em]"
+                  />
+                </div>
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    disabled={pinSaving || !pin || !confirmPin || !!(profile?.withdrawal_pin && !currentPin)}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue"
+                  >
+                    {pinSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {profile?.withdrawal_pin ? 'Update PIN' : 'Create PIN'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </motion.div>
       )}

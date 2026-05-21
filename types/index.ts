@@ -22,6 +22,7 @@ export type Profile = {
   address: string;
   created_at: string;
   updated_at: string;
+  withdrawal_pin?: string | null;
 };
 
 export type InvestmentPlan = {

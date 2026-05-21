@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import type { WithdrawalRequest, BankDetails } from '@/types';
+import { ConfirmPinModal } from '@/components/ui/ConfirmPinModal';
 
 const networks = [
   { value: 'USDT_TRC20', label: 'USDT (TRC20)', type: 'crypto' },
@@ -32,6 +33,7 @@ export default function WithdrawPage() {
 
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
   const isBank = activeTab === 'bank';
   const availableNetworks = networks.filter(n => n.type === activeTab);
@@ -61,17 +63,27 @@ export default function WithdrawPage() {
     enabled: !!profile?.id,
   });
 
-  const handleWithdraw = async () => {
+  const handleWithdraw = () => {
     const amt = Number(amount);
     if (!amt || amt < 10) { toast.error('Minimum withdrawal is $10'); return; }
     if (amt > Number(profile?.balance ?? 0)) { toast.error('Insufficient balance'); return; }
 
-    let destination = '';
     if (isBank) {
       if (!bankName || !accountName || !accountNumber) {
         toast.error('Please fill in all required bank details');
         return;
       }
+    } else {
+      if (!wallet.trim()) { toast.error('Enter your wallet address'); return; }
+    }
+
+    setIsPinModalOpen(true);
+  };
+
+  const executeWithdrawal = async (pin: string) => {
+    const amt = Number(amount);
+    let destination = '';
+    if (isBank) {
       const bankDetails: BankDetails = {
         bank_name: bankName,
         account_name: accountName,
@@ -80,7 +92,6 @@ export default function WithdrawPage() {
       };
       destination = JSON.stringify(bankDetails);
     } else {
-      if (!wallet.trim()) { toast.error('Enter your wallet address'); return; }
       destination = wallet.trim();
     }
 
@@ -323,6 +334,18 @@ export default function WithdrawPage() {
           </div>
         </div>
       )}
+
+      {/* Transaction PIN Confirmation Modal */}
+      <ConfirmPinModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        onSuccess={(pin) => {
+          setIsPinModalOpen(false);
+          executeWithdrawal(pin);
+        }}
+        title="Confirm Withdrawal Authorization"
+        description={`Please enter your 4-digit Transaction PIN to authorize a withdrawal of $${Number(amount).toFixed(2)}.`}
+      />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
-  LayoutDashboard, TrendingUp, Wallet, ArrowDownToLine, ArrowUpFromLine,
+  LayoutDashboard, TrendingUp, Wallet, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight,
   Users, Bell, Settings, LogOut, TrendingDown, Menu, X, Shield, ShieldCheck,
   LineChart, Newspaper, BarChart3, Headphones, Copy
 } from 'lucide-react';
@@ -23,6 +23,7 @@ const navItems = [
   { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/dashboard/deposit', label: 'Deposit', icon: ArrowDownToLine },
   { href: '/dashboard/withdraw', label: 'Withdraw', icon: ArrowUpFromLine },
+  { href: '/dashboard/transfer', label: 'Transfer', icon: ArrowLeftRight },
   { href: '/dashboard/transactions', label: 'Transactions', icon: Wallet },
   { href: '/dashboard/referrals', label: 'Referrals', icon: Users },
   { href: '/dashboard/news', label: 'Market News', icon: Newspaper },
