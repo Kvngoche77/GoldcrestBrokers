@@ -104,16 +104,36 @@ export default function SupportPage() {
   const createTicket = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error('Not authenticated');
+      if (!newSubject.trim()) throw new Error('Subject is required');
+      if (!newMessage.trim()) throw new Error('Message is required');
+      
+      // Insert the ticket first
       const { data: ticket, error: tErr } = await supabase
         .from('support_tickets')
-        .insert({ user_id: user.id, subject: newSubject, category: newCategory })
+        .insert({ user_id: user.id, subject: newSubject.trim(), category: newCategory })
         .select()
         .single();
-      if (tErr) throw tErr;
+      
+      if (tErr) {
+        console.error('Error creating ticket:', tErr);
+        throw tErr;
+      }
+      
+      // Then insert the initial message linked to the ticket
       const { error: mErr } = await supabase
         .from('support_messages')
-        .insert({ ticket_id: ticket.id, sender_id: user.id, message: newMessage, is_admin_reply: false });
-      if (mErr) throw mErr;
+        .insert({ 
+          ticket_id: ticket.id, 
+          sender_id: user.id, 
+          message: newMessage.trim(), 
+          is_admin_reply: false 
+        });
+      
+      if (mErr) {
+        console.error('Error creating message:', mErr);
+        throw mErr;
+      }
+      
       return ticket;
     },
     onSuccess: () => {
@@ -124,23 +144,41 @@ export default function SupportPage() {
       setNewMessage('');
       setNewCategory('general');
     },
-    onError: () => toast.error('Failed to create ticket'),
+    onError: (error) => {
+      console.error('Failed to create ticket:', error);
+      toast.error('Failed to create ticket. Please try again.');
+    },
   });
 
   // Send reply mutation
   const sendReply = useMutation({
     mutationFn: async () => {
       if (!user?.id || !selectedTicket?.id) throw new Error('Missing data');
+      if (!replyText.trim()) throw new Error('Message is required');
+      
       const { error } = await supabase
         .from('support_messages')
-        .insert({ ticket_id: selectedTicket.id, sender_id: user.id, message: replyText, is_admin_reply: false });
-      if (error) throw error;
+        .insert({ 
+          ticket_id: selectedTicket.id, 
+          sender_id: user.id, 
+          message: replyText.trim(), 
+          is_admin_reply: false 
+        });
+      
+      if (error) {
+        console.error('Error sending message:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       setReplyText('');
       queryClient.invalidateQueries({ queryKey: ['support-messages', selectedTicket?.id] });
+      toast.success('Message sent!');
     },
-    onError: () => toast.error('Failed to send message'),
+    onError: (error) => {
+      console.error('Failed to send message:', error);
+      toast.error('Failed to send message. Please try again.');
+    },
   });
 
   return (

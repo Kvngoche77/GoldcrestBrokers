@@ -46,7 +46,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if profile exists and has basic required data
       if (data && data.username) {
         console.log('AuthContext: Profile loaded successfully:', data);
-        setProfile(data as Profile);
+        // Add email from user metadata to profile
+        const profileWithEmail = {
+          ...data,
+          email: data.email || currentUser.email || currentUser.user_metadata?.email
+        } as Profile;
+        setProfile(profileWithEmail);
         setLoading(false);
       } else {
         // Profile is missing or incomplete (e.g. missing username)
@@ -68,10 +73,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (fixError) {
           console.error('AuthContext: Error fixing profile:', fixError);
-          if (data) setProfile(data as Profile); // Use what we have if fix fails
+          if (data) {
+            const profileWithEmail = {
+              ...data,
+              email: data.email || currentUser.email || currentUser.user_metadata?.email
+            } as Profile;
+            setProfile(profileWithEmail);
+          }
         } else if (fixedProfile) {
           console.log('AuthContext: Profile fixed/created successfully:', fixedProfile);
-          setProfile(fixedProfile as Profile);
+          const profileWithEmail = {
+            ...fixedProfile,
+            email: fixedProfile.email || currentUser.email || currentUser.user_metadata?.email
+          } as Profile;
+          setProfile(profileWithEmail);
         }
         setLoading(false);
       }
