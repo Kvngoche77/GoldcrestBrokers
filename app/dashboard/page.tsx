@@ -8,6 +8,7 @@ import { ArrowUpRight, ArrowDownLeft, TrendingUp, Wallet, Users, Clock, ArrowRig
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { PortfolioChart } from '@/components/sections/PortfolioChart';
+import { EmailVerificationBanner } from '@/components/sections/EmailVerificationBanner';
 import type { Transaction, Investment, InvestmentPlan } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -148,6 +149,9 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* Email Verification Banner */}
+      <EmailVerificationBanner />
+      
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">
