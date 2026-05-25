@@ -23,6 +23,8 @@ export type Profile = {
   created_at: string;
   updated_at: string;
   withdrawal_pin?: string | null;
+  email_verified?: boolean;
+  email_verification_sent_at?: string;
 };
 
 export type InvestmentPlan = {
@@ -172,4 +174,15 @@ export type WithdrawalAlert = {
   asset: string;
   location?: string;
   created_at?: string;
+};
+
+export type AdminEmail = {
+  id: string;
+  admin_id: string;
+  recipient_user_id: string;
+  subject: string;
+  message: string;
+  status: 'sent' | 'delivered' | 'failed';
+  created_at: string;
+  profile?: Profile;
 };

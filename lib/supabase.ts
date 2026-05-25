@@ -152,6 +152,45 @@ export type Database = {
         Insert: Partial<Database['public']['Tables']['copy_traders']['Row']>;
         Update: Partial<Database['public']['Tables']['copy_traders']['Row']>;
       };
+      support_tickets: {
+        Row: {
+          id: string;
+          user_id: string;
+          subject: string;
+          category: 'general' | 'deposit' | 'withdrawal' | 'investment' | 'technical' | 'kyc' | 'other';
+          priority: 'low' | 'normal' | 'high' | 'urgent';
+          status: 'open' | 'in_progress' | 'resolved' | 'closed';
+          admin_note: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          subject: string;
+          category?: 'general' | 'deposit' | 'withdrawal' | 'investment' | 'technical' | 'kyc' | 'other';
+          priority?: 'low' | 'normal' | 'high' | 'urgent';
+          status?: 'open' | 'in_progress' | 'resolved' | 'closed';
+          admin_note?: string;
+        };
+        Update: Partial<Database['public']['Tables']['support_tickets']['Row']>;
+      };
+      support_messages: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          sender_id: string;
+          message: string;
+          is_admin_reply: boolean;
+          created_at: string;
+        };
+        Insert: {
+          ticket_id: string;
+          sender_id: string;
+          message: string;
+          is_admin_reply?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['support_messages']['Row']>;
+      };
     };
   };
 };

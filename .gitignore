@@ -1,34 +1,51 @@
+```
 # Dependencies
 node_modules/
-/.pnp
-.pnp.js
 
-# Testing
-/coverage
+# Build outputs
+dist/
+build/
+.next/
+out/
 
-# Next.js Build Output
-/.next/
-/out/
-
-# Production Build
-/build
-
-# Environment Variables (IMPORTANT: Protect your secrets!)
+# Environment variables
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 
-# Debug logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# System Files
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Database
+*.db
+*.db-journal
+
+# OS
 .DS_Store
 Thumbs.db
 
-# Other
-.bolt/
-Goldcrest Broker/
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Temporary files
+*.tmp
+*.temp
+```
