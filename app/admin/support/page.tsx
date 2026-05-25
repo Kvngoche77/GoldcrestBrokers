@@ -21,7 +21,7 @@ type Ticket = {
   admin_note: string;
   created_at: string;
   updated_at: string;
-  user_profile?: { username: string | null; full_name: string | null; email?: string };
+  user_profile?: { username: string | null; full_name: string | null } | null;
 };
 
 type Message = {
@@ -95,13 +95,20 @@ export default function AdminSupportPage() {
   const sendReply = useMutation({
     mutationFn: async () => {
       if (!user?.id || !selectedTicket?.id) throw new Error('Missing data');
+      if (!replyText.trim()) throw new Error('Message is required');
+      
       const { error } = await supabase.from('support_messages').insert({
         ticket_id: selectedTicket.id,
         sender_id: user.id,
-        message: replyText,
+        message: replyText.trim(),
         is_admin_reply: true,
       });
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Error sending reply:', error);
+        throw error;
+      }
+      
       // Auto-set to in_progress if still open
       if (selectedTicket.status === 'open') {
         await supabase.from('support_tickets').update({ status: 'in_progress', updated_at: new Date().toISOString() }).eq('id', selectedTicket.id);
@@ -112,8 +119,12 @@ export default function AdminSupportPage() {
       setReplyText('');
       queryClient.invalidateQueries({ queryKey: ['admin-support-messages', selectedTicket?.id] });
       queryClient.invalidateQueries({ queryKey: ['admin-support-tickets'] });
+      toast.success('Reply sent!');
     },
-    onError: () => toast.error('Failed to send reply'),
+    onError: (error) => {
+      console.error('Failed to send reply:', error);
+      toast.error('Failed to send reply. Please try again.');
+    },
   });
 
   const updateTicket = useMutation({
@@ -123,7 +134,10 @@ export default function AdminSupportPage() {
       if (status) updates.status = status;
       if (note !== undefined) updates.admin_note = note;
       const { error } = await supabase.from('support_tickets').update(updates).eq('id', selectedTicket.id);
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating ticket:', error);
+        throw error;
+      }
     },
     onSuccess: (_, vars) => {
       toast.success('Ticket updated');
@@ -134,7 +148,10 @@ export default function AdminSupportPage() {
       } : null);
       queryClient.invalidateQueries({ queryKey: ['admin-support-tickets'] });
     },
-    onError: () => toast.error('Failed to update ticket'),
+    onError: (error) => {
+      console.error('Failed to update ticket:', error);
+      toast.error('Failed to update ticket. Please try again.');
+    },
   });
 
   const counts = {
