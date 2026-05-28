@@ -77,6 +77,24 @@ export default function DepositPage() {
         metadata: { network: selectedNetwork, wallet: selectedAddress?.address },
       });
       if (error) throw error;
+
+      // Trigger Edge Function deposit email
+      fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'deposit_initiated',
+          user_email: profile!.email,
+          user_name: profile!.full_name || profile!.username || 'Trader',
+          amount: Number(amount),
+          currency: 'USD',
+          status: 'Pending',
+          tx_id: txHash.trim(),
+        }),
+      }).catch((err) => console.error('DepositPage: Error triggering deposit email:', err));
+
       setSubmitted(true);
       toast.success('Deposit submitted for review!');
     } catch {

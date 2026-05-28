@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, ShieldCheck, User, MapPin, FileText, Check,
-  ArrowRight, ArrowLeft, Loader2, UploadCloud, CreditCard, Car, BookOpen
+  ArrowRight, ArrowLeft, Loader2, UploadCloud, CreditCard, Car, BookOpen, Mail, RefreshCw, LogOut
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
@@ -25,12 +25,175 @@ const ID_TYPES = [
 ];
 
 export default function KYCOnboardingPage() {
-  const { profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [cooldown, setCooldown] = useState(0);
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
+  const handleCheckVerification = async () => {
+    setVerifying(true);
+    try {
+      const { data: { user: updatedUser }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      
+      if (updatedUser?.email_confirmed_at) {
+        toast.success('Email verified successfully! Loading onboarding...');
+        window.location.reload();
+      } else {
+        toast.error('Email not verified yet. Please check your inbox and spam folder.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to check verification status.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (cooldown > 0) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user?.email ?? '',
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Verification email resent! Please check your spam folder.');
+        setCooldown(60);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to resend verification email.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success('Signed out successfully');
+    router.push('/');
+  };
+
+  if (user && !user.email_confirmed_at) {
+    return (
+      <div className="min-h-screen bg-[#040c18] flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Background ambient lighting */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-10 bg-gradient-to-br from-blue-600 to-indigo-600 animate-pulse" />
+          <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-10 bg-gradient-to-tr from-amber-500 to-emerald-500 animate-pulse delay-700" />
+        </div>
+
+        <motion.div 
+          className="w-full max-w-lg relative z-10"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          {/* Main Card */}
+          <div className="glass-strong rounded-[2.5rem] p-8 md:p-10 border border-white/[0.08] bg-[#060e1d]/85 backdrop-blur-2xl text-center relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            {/* Ambient inner glow */}
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-500/[0.02] to-transparent pointer-events-none" />
+
+            {/* Icon header */}
+            <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 flex items-center justify-center mx-auto mb-8 shadow-[0_8px_30px_rgba(59,130,246,0.15)] relative">
+              <div className="absolute inset-0 rounded-[2rem] bg-blue-500/10 animate-ping opacity-60 pointer-events-none" />
+              <Mail size={40} className="text-blue-400 relative z-10 animate-pulse" />
+            </div>
+
+            {/* Titles */}
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-3 tracking-tight">
+              Verify Your Email Address
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
+              Thank you for registering! We've sent a verification link to your registered email address:
+            </p>
+
+            {/* Glowing Email Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-500/[0.03] border border-blue-500/20 text-blue-400 font-semibold text-sm md:text-base mb-8 shadow-inner">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              {user.email}
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed mb-8 max-w-sm mx-auto">
+              Please click the link in that email to confirm your identity, activate your account, and unlock access to the onboarding forms.
+            </p>
+
+            {/* Primary Action: I've Verified */}
+            <button
+              onClick={handleCheckVerification}
+              disabled={verifying}
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-2xl transition-all shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.55)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 text-base"
+            >
+              {verifying ? (
+                <>
+                  <RefreshCw size={18} className="animate-spin" />
+                  Verifying Status...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={18} />
+                  I've Verified My Email
+                </>
+              )}
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center my-6">
+              <div className="flex-1 h-px bg-white/[0.06]" />
+              <span className="px-3 text-[10px] uppercase font-bold text-slate-600 tracking-widest">or</span>
+              <div className="flex-1 h-px bg-white/[0.06]" />
+            </div>
+
+            {/* Secondary Actions */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={handleResendVerification}
+                disabled={resending || cooldown > 0}
+                className="py-3 px-4 bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98] text-white text-xs md:text-sm font-bold rounded-xl transition-all border border-white/10 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {resending ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  'Resend Link'
+                )}
+                {cooldown > 0 && ` (${cooldown}s)`}
+              </button>
+
+              <button
+                onClick={handleSignOut}
+                className="py-3 px-4 bg-red-500/[0.04] hover:bg-red-500/[0.08] active:scale-[0.98] text-red-400 text-xs md:text-sm font-bold rounded-xl transition-all border border-red-500/10 flex items-center justify-center gap-2 hover:border-red-500/20"
+              >
+                <LogOut size={14} />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Effect to react to changes in user auth status
+  useEffect(() => {
+    if (user && user.email_confirmed_at) {
+      // Allow onboarded/verified user
+    }
+  }, [user]);
 
   const [formData, setFormData] = useState({
     dob: '',

@@ -131,6 +131,23 @@ export default function InvestPage() {
         description: `${selectedPlan.name} plan activated`,
       });
 
+      // Trigger Edge Function investment email
+      fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'investment_created',
+          user_email: profile!.email,
+          user_name: profile!.full_name || profile!.username || 'Trader',
+          amount: amt,
+          currency: 'USD',
+          status: 'Active',
+          tx_id: 'N/A',
+        }),
+      }).catch((err) => console.error('InvestPage: Error triggering investment email:', err));
+
       await refreshProfile();
       toast.success(`${selectedPlan.name} plan activated! Earning ${selectedPlan.daily_roi_percent}% daily.`);
       router.push('/dashboard');

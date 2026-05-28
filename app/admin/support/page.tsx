@@ -97,23 +97,30 @@ export default function AdminSupportPage() {
       if (!user?.id || !selectedTicket?.id) throw new Error('Missing data');
       if (!replyText.trim()) throw new Error('Message is required');
       
-      const { error } = await supabase.from('support_messages').insert({
-        ticket_id: selectedTicket.id,
-        sender_id: user.id,
-        message: replyText.trim(),
-        is_admin_reply: true,
+      const response = await fetch('/api/support/send-admin-reply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketId: selectedTicket.id,
+          message: replyText.trim(),
+          userId: user.id,
+        }),
       });
-      
-      if (error) {
-        console.error('Error sending reply:', error);
-        throw error;
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send reply');
       }
-      
+
+      const data = await response.json();
+
       // Auto-set to in_progress if still open
       if (selectedTicket.status === 'open') {
-        await supabase.from('support_tickets').update({ status: 'in_progress', updated_at: new Date().toISOString() }).eq('id', selectedTicket.id);
         setSelectedTicket(prev => prev ? { ...prev, status: 'in_progress' } : null);
       }
+      return data.message;
     },
     onSuccess: () => {
       setReplyText('');
@@ -121,23 +128,36 @@ export default function AdminSupportPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-support-tickets'] });
       toast.success('Reply sent!');
     },
-    onError: (error) => {
-      console.error('Failed to send reply:', error);
-      toast.error('Failed to send reply. Please try again.');
+    onError: (err: any) => {
+      console.error('Failed to send reply:', err);
+      toast.error(err.message || 'Failed to send reply. Please try again.');
     },
   });
 
   const updateTicket = useMutation({
     mutationFn: async ({ status, note }: { status?: string; note?: string }) => {
-      if (!selectedTicket?.id) throw new Error('No ticket selected');
-      const updates: Record<string, string> = { updated_at: new Date().toISOString() };
-      if (status) updates.status = status;
-      if (note !== undefined) updates.admin_note = note;
-      const { error } = await supabase.from('support_tickets').update(updates).eq('id', selectedTicket.id);
-      if (error) {
-        console.error('Error updating ticket:', error);
-        throw error;
+      if (!selectedTicket?.id || !user?.id) throw new Error('No ticket selected or user missing');
+      
+      const response = await fetch('/api/support/update-ticket', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketId: selectedTicket.id,
+          status,
+          adminNote: note,
+          userId: user.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update ticket');
       }
+
+      const data = await response.json();
+      return data.ticket;
     },
     onSuccess: (_, vars) => {
       toast.success('Ticket updated');
@@ -148,9 +168,9 @@ export default function AdminSupportPage() {
       } : null);
       queryClient.invalidateQueries({ queryKey: ['admin-support-tickets'] });
     },
-    onError: (error) => {
-      console.error('Failed to update ticket:', error);
-      toast.error('Failed to update ticket. Please try again.');
+    onError: (err: any) => {
+      console.error('Failed to update ticket:', err);
+      toast.error(err.message || 'Failed to update ticket. Please try again.');
     },
   });
 

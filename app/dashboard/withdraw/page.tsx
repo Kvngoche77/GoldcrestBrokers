@@ -119,6 +119,23 @@ export default function WithdrawPage() {
         metadata: isBank ? { bank_details: { bank_name: bankName, account_name: accountName, account_number: accountNumber, swift_code: swiftCode } } : { wallet_address: destination, network }
       });
 
+      // Trigger Edge Function withdrawal email
+      fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'withdrawal_initiated',
+          user_email: profile!.email,
+          user_name: profile!.full_name || profile!.username || 'Trader',
+          amount: amt,
+          currency: 'USD',
+          status: 'Pending',
+          tx_id: 'N/A',
+        }),
+      }).catch((err) => console.error('WithdrawPage: Error triggering withdrawal email:', err));
+
       await refreshProfile();
       refetch();
       setSubmitted(true);

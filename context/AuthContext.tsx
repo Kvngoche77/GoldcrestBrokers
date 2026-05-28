@@ -46,10 +46,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if profile exists and has basic required data
       if (data && data.username) {
         console.log('AuthContext: Profile loaded successfully:', data);
+        
+        // Sync email verification if confirmed in auth but not in profile
+        let emailVerified = data.email_verified;
+        if (currentUser.email_confirmed_at && !data.email_verified) {
+          console.log('AuthContext: Email confirmed in Auth, updating profile...');
+          const { error: updateErr } = await supabase
+            .from('profiles')
+            .update({ email_verified: true })
+            .eq('id', userId);
+          
+          if (!updateErr) {
+            emailVerified = true;
+            console.log('AuthContext: Profile email_verified set to true');
+            
+            // Trigger Edge Function welcome email
+            fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                type: 'email_verified',
+                user_email: currentUser.email,
+                user_name: data.full_name || data.username || 'Trader',
+              }),
+            }).catch((err) => console.error('AuthContext: Error triggering welcome email:', err));
+          } else {
+            console.error('AuthContext: Error syncing email verification:', updateErr);
+          }
+        }
+
         // Add email from user metadata to profile
         const profileWithEmail = {
           ...data,
-          email: data.email || currentUser.email || currentUser.user_metadata?.email
+          email: data.email || currentUser.email || currentUser.user_metadata?.email,
+          email_verified: emailVerified,
         } as Profile;
         setProfile(profileWithEmail);
         setLoading(false);

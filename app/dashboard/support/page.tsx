@@ -107,46 +107,39 @@ export default function SupportPage() {
       if (!newSubject.trim()) throw new Error('Subject is required');
       if (!newMessage.trim()) throw new Error('Message is required');
       
-      // Insert the ticket first
-      const { data: ticket, error: tErr } = await supabase
-        .from('support_tickets')
-        .insert({ user_id: user.id, subject: newSubject.trim(), category: newCategory })
-        .select()
-        .single();
-      
-      if (tErr) {
-        console.error('Error creating ticket:', tErr);
-        throw tErr;
+      const response = await fetch('/api/support/create-ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject: newSubject.trim(),
+          category: newCategory,
+          priority: 'normal',
+          message: newMessage.trim(),
+          userId: user.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create ticket');
       }
-      
-      // Then insert the initial message linked to the ticket
-      const { error: mErr } = await supabase
-        .from('support_messages')
-        .insert({ 
-          ticket_id: ticket.id, 
-          sender_id: user.id, 
-          message: newMessage.trim(), 
-          is_admin_reply: false 
-        });
-      
-      if (mErr) {
-        console.error('Error creating message:', mErr);
-        throw mErr;
-      }
-      
-      return ticket;
+
+      const data = await response.json();
+      return data.ticket;
     },
     onSuccess: () => {
       toast.success('Support ticket created!');
-      queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['support-tickets', user?.id] });
       setShowNew(false);
       setNewSubject('');
       setNewMessage('');
       setNewCategory('general');
     },
-    onError: (error) => {
-      console.error('Failed to create ticket:', error);
-      toast.error('Failed to create ticket. Please try again.');
+    onError: (err: any) => {
+      console.error('Failed to create support ticket:', err);
+      toast.error(err.message || 'Failed to create ticket. Please try again.');
     },
   });
 
@@ -154,31 +147,38 @@ export default function SupportPage() {
   const sendReply = useMutation({
     mutationFn: async () => {
       if (!user?.id || !selectedTicket?.id) throw new Error('Missing data');
-      if (!replyText.trim()) throw new Error('Message is required');
-      
-      const { error } = await supabase
-        .from('support_messages')
-        .insert({ 
-          ticket_id: selectedTicket.id, 
-          sender_id: user.id, 
-          message: replyText.trim(), 
-          is_admin_reply: false 
-        });
-      
-      if (error) {
-        console.error('Error sending message:', error);
-        throw error;
+      if (!replyText.trim()) throw new Error('Message cannot be empty');
+
+      const response = await fetch('/api/support/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketId: selectedTicket.id,
+          senderId: user.id,
+          message: replyText.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send message');
       }
+
+      const data = await response.json();
+      return data.message;
     },
     onSuccess: () => {
+      toast.success('Message sent!');
       setReplyText('');
       queryClient.invalidateQueries({ queryKey: ['support-messages', selectedTicket?.id] });
-      toast.success('Message sent!');
     },
-    onError: (error) => {
-      console.error('Failed to send message:', error);
-      toast.error('Failed to send message. Please try again.');
+    onError: (err: any) => {
+      console.error('Failed to send reply:', err);
+      toast.error(err.message || 'Failed to send message. Please try again.');
     },
+
   });
 
   return (

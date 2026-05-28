@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, TrendingUp, Wallet, ArrowDownToLine, ArrowUpFromLine, ArrowLeftRight,
   Users, Bell, Settings, LogOut, TrendingDown, Menu, X, Shield, ShieldCheck,
-  LineChart, Newspaper, BarChart3, Headphones, Copy
+  LineChart, Newspaper, BarChart3, Headphones, Copy, Mail, RefreshCw
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
@@ -38,6 +38,56 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
+
+  const handleCheckVerification = async () => {
+    setVerifying(true);
+    try {
+      const { data: { user: updatedUser }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      
+      if (updatedUser?.email_confirmed_at) {
+        toast.success('Email verified successfully! Loading your dashboard...');
+        window.location.reload();
+      } else {
+        toast.error('Email not verified yet. Please check your inbox and spam folder.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to check verification status.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (cooldown > 0) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user?.email ?? '',
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Verification email resent! Please check your spam folder.');
+        setCooldown(60);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to resend verification email.');
+    } finally {
+      setResending(false);
+    }
+  };
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['unread-notifications', user?.id],
@@ -81,6 +131,105 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!user) return null;
+
+  if (user && !user.email_confirmed_at) {
+    return (
+      <div className="min-h-screen bg-[#040c18] flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Background ambient lighting */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-10 bg-gradient-to-br from-blue-600 to-indigo-600 animate-pulse" />
+          <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full blur-[120px] opacity-10 bg-gradient-to-tr from-amber-500 to-emerald-500 animate-pulse delay-700" />
+        </div>
+
+        <motion.div 
+          className="w-full max-w-lg relative z-10"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          {/* Main Card */}
+          <div className="glass-strong rounded-[2.5rem] p-8 md:p-10 border border-white/[0.08] bg-[#060e1d]/85 backdrop-blur-2xl text-center relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            {/* Ambient inner glow */}
+            <div className="absolute inset-0 bg-gradient-to-b from-blue-500/[0.02] to-transparent pointer-events-none" />
+
+            {/* Icon header */}
+            <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 flex items-center justify-center mx-auto mb-8 shadow-[0_8px_30px_rgba(59,130,246,0.15)] relative">
+              <div className="absolute inset-0 rounded-[2rem] bg-blue-500/10 animate-ping opacity-60 pointer-events-none" />
+              <Mail size={40} className="text-blue-400 relative z-10 animate-pulse" />
+            </div>
+
+            {/* Titles */}
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-3 tracking-tight">
+              Verify Your Email Address
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
+              Thank you for registering! We've sent a verification link to your registered email address:
+            </p>
+
+            {/* Glowing Email Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-blue-500/[0.03] border border-blue-500/20 text-blue-400 font-semibold text-sm md:text-base mb-8 shadow-inner">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              {user.email}
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed mb-8 max-w-sm mx-auto">
+              Please click the link in that email to confirm your identity, activate your account, and unlock access to the trading terminal.
+            </p>
+
+            {/* Primary Action: I've Verified */}
+            <button
+              onClick={handleCheckVerification}
+              disabled={verifying}
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-2xl transition-all shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_40px_rgba(59,130,246,0.55)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 text-base"
+            >
+              {verifying ? (
+                <>
+                  <RefreshCw size={18} className="animate-spin" />
+                  Verifying Status...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={18} />
+                  I've Verified My Email
+                </>
+              )}
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center my-6">
+              <div className="flex-1 h-px bg-white/[0.06]" />
+              <span className="px-3 text-[10px] uppercase font-bold text-slate-600 tracking-widest">or</span>
+              <div className="flex-1 h-px bg-white/[0.06]" />
+            </div>
+
+            {/* Secondary Actions */}
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={handleResendVerification}
+                disabled={resending || cooldown > 0}
+                className="py-3 px-4 bg-white/[0.03] hover:bg-white/[0.06] active:scale-[0.98] text-white text-xs md:text-sm font-bold rounded-xl transition-all border border-white/10 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {resending ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  'Resend Link'
+                )}
+                {cooldown > 0 && ` (${cooldown}s)`}
+              </button>
+
+              <button
+                onClick={handleSignOut}
+                className="py-3 px-4 bg-red-500/[0.04] hover:bg-red-500/[0.08] active:scale-[0.98] text-red-400 text-xs md:text-sm font-bold rounded-xl transition-all border border-red-500/10 flex items-center justify-center gap-2 hover:border-red-500/20"
+              >
+                <LogOut size={14} />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   const displayUsername = profile?.username || user?.user_metadata?.username || user?.email?.split('@')[0] || 'Investor';
   const displayFullName = profile?.full_name || user?.user_metadata?.full_name || 'Investor';
@@ -195,57 +344,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        {/* Email Verification Warning */}
-        {user && !user.email_confirmed_at && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            className="px-4 sm:px-6 py-4 bg-gradient-to-r from-amber-500/20 via-amber-600/10 to-amber-500/20 border-b border-amber-500/30 relative overflow-hidden"
-          >
-            {/* Animated background glow */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(245,158,11,0.1),transparent_70%)] animate-pulse" />
-            
-            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 flex items-center justify-center flex-shrink-0 border border-amber-500/30 shadow-lg shadow-amber-500/10">
-                  <Shield size={24} className="text-amber-500 animate-bounce-slow" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-sm sm:text-base font-bold text-amber-100 flex items-center gap-2">
-                    Action Required: Verify Your Identity
-                    <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                  </h4>
-                  <p className="text-xs text-amber-200/70 mt-1 leading-relaxed">
-                    A verification link was sent to <span className="text-amber-400 font-bold underline underline-offset-2">{user?.email}</span>. 
-                    Please confirm your email to unlock all trading features and secure your account.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <button 
-                  onClick={async () => {
-                    const { error } = await supabase.auth.resend({
-                      type: 'signup',
-                      email: user?.email ?? '',
-                    });
-                    if (error) toast.error(error.message);
-                    else toast.success('Verification email resent! Please check your spam folder.');
-                  }}
-                  className="flex-1 sm:flex-none px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-amber-900/20 uppercase tracking-widest flex items-center justify-center gap-2"
-                >
-                  Resend Email
-                </button>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className="flex-1 sm:flex-none px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl transition-all border border-white/10 uppercase tracking-widest"
-                >
-                  I've Verified
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
 
         {/* Page content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8">

@@ -21,6 +21,11 @@ CREATE TABLE IF NOT EXISTS support_tickets (
 
 ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own tickets" ON support_tickets;
+DROP POLICY IF EXISTS "Users can create tickets" ON support_tickets;
+DROP POLICY IF EXISTS "Admins can view all tickets" ON support_tickets;
+DROP POLICY IF EXISTS "Admins can update all tickets" ON support_tickets;
+
 CREATE POLICY "Users can view own tickets"
   ON support_tickets FOR SELECT
   TO authenticated
@@ -60,23 +65,43 @@ CREATE TABLE IF NOT EXISTS support_messages (
 
 ALTER TABLE support_messages ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view messages for own tickets"
+-- Drop old policies (safe if they don't exist)
+DROP POLICY IF EXISTS "Users can view messages for own tickets" ON support_messages;
+DROP POLICY IF EXISTS "Users can send messages to own tickets" ON support_messages;
+DROP POLICY IF EXISTS "support_messages_select_own" ON support_messages;
+DROP POLICY IF EXISTS "support_messages_select_admin" ON support_messages;
+DROP POLICY IF EXISTS "support_messages_insert_own" ON support_messages;
+DROP POLICY IF EXISTS "support_messages_insert_admin" ON support_messages;
+
+-- Users can view messages from their own tickets
+CREATE POLICY "support_messages_select_own"
   ON support_messages FOR SELECT
   TO authenticated
   USING (
     EXISTS (SELECT 1 FROM support_tickets WHERE id = ticket_id AND user_id = auth.uid())
-    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
   );
 
-CREATE POLICY "Users can send messages to own tickets"
+-- Admins can view all messages
+CREATE POLICY "support_messages_select_admin"
+  ON support_messages FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+  );
+
+-- Users can send messages to their own tickets
+CREATE POLICY "support_messages_insert_own"
+  ON support_messages FOR INSERT
+  TO authenticated
+  WITH CHECK (sender_id = auth.uid());
+
+-- Admins can send messages to any ticket
+CREATE POLICY "support_messages_insert_admin"
   ON support_messages FOR INSERT
   TO authenticated
   WITH CHECK (
-    sender_id = auth.uid()
-    AND (
-      EXISTS (SELECT 1 FROM support_tickets WHERE id = ticket_id AND user_id = auth.uid())
-      OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
-    )
+    sender_id = auth.uid() AND
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
   );
 
 -- Indexes

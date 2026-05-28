@@ -25,7 +25,7 @@ export default function FeatureGuard({ children, allowedFeatures = [] }: Feature
   const { user, profile, refreshProfile } = useAuth();
 
   // Check if user is verified or if the current feature is allowed without verification
-  const isVerified = profile?.is_email_verified === true;
+  const isVerified = profile?.email_verified === true;
   
   // Determine if we should block access
   // We block if: not verified AND (no allowedFeatures provided OR current path not in allowedFeatures)
