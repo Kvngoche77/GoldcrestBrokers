@@ -43,6 +43,7 @@ export default function AdminWithdrawalsPage() {
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, userId, amount }: { id: string; userId: string; amount: number }) => {
+      // Mark withdrawal as approved
       await supabase.from('withdrawal_requests').update({
         status: 'approved',
         processed_by: profile!.id,
@@ -50,22 +51,29 @@ export default function AdminWithdrawalsPage() {
         admin_note: noteMap[id] ?? '',
       }).eq('id', id);
 
-      // Deduct user balance
-      const { data: userProfile } = await supabase.from('profiles').select('balance').eq('id', userId).single();
-      if (userProfile) {
-        await supabase.from('profiles').update({ balance: Number(userProfile.balance) - amount }).eq('id', userId);
-      const { data: userProfile } = await supabase.from('profiles').select('balance, total_withdrawn').eq('id', userId).single();
-      if (userProfile) {
-        await supabase.from('transactions').update({ status: 'completed' })
-          .eq('user_id', userId).eq('type', 'withdrawal').eq('status', 'pending')
-          .limit(1);
+      // Fetch current profile to get latest balance and total_withdrawn
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('balance, total_withdrawn')
+        .eq('id', userId)
+        .single();
 
+      if (userProfile) {
+        // Deduct balance and increment total_withdrawn in one update
         await supabase.from('profiles').update({
-          total_withdrawn: (userProfile.total_withdrawn || 0) + amount,
-          balance: Number(userProfile.balance) - amount
+          balance: Number(userProfile.balance) - amount,
+          total_withdrawn: Number(userProfile.total_withdrawn || 0) + amount,
         }).eq('id', userId);
       }
 
+      // Mark matching pending withdrawal transaction as completed
+      await supabase.from('transactions').update({ status: 'completed' })
+        .eq('user_id', userId)
+        .eq('type', 'withdrawal')
+        .eq('status', 'pending')
+        .limit(1);
+
+      // Notify user
       await supabase.from('notifications').insert({
         user_id: userId,
         title: 'Withdrawal Approved',
@@ -73,12 +81,10 @@ export default function AdminWithdrawalsPage() {
         type: 'success',
       });
 
-      // Trigger API Route for successful withdrawal email
+      // Send approval email (fire-and-forget)
       fetch('/api/send-email', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'withdrawal_approved',
           user_id: userId,
@@ -91,6 +97,7 @@ export default function AdminWithdrawalsPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-withdrawals'] }); toast.success('Withdrawal approved'); },
     onError: () => toast.error('Failed to approve'),
   });
+
 
   const rejectMutation = useMutation({
     mutationFn: async ({ id, userId, amount }: { id: string; userId: string; amount: number }) => {
