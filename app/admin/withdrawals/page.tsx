@@ -50,11 +50,21 @@ export default function AdminWithdrawalsPage() {
         admin_note: noteMap[id] ?? '',
       }).eq('id', id);
 
-      await supabase.from('transactions').update({ status: 'completed' })
-        .eq('user_id', userId).eq('type', 'withdrawal').eq('status', 'pending')
-        .limit(1);
+      // Deduct user balance
+      const { data: userProfile } = await supabase.from('profiles').select('balance').eq('id', userId).single();
+      if (userProfile) {
+        await supabase.from('profiles').update({ balance: Number(userProfile.balance) - amount }).eq('id', userId);
+      const { data: userProfile } = await supabase.from('profiles').select('balance, total_withdrawn').eq('id', userId).single();
+      if (userProfile) {
+        await supabase.from('transactions').update({ status: 'completed' })
+          .eq('user_id', userId).eq('type', 'withdrawal').eq('status', 'pending')
+          .limit(1);
 
-      await supabase.from('profiles').update({ total_withdrawn: amount }).eq('id', userId);
+        await supabase.from('profiles').update({
+          total_withdrawn: (userProfile.total_withdrawn || 0) + amount,
+          balance: Number(userProfile.balance) - amount
+        }).eq('id', userId);
+      }
 
       await supabase.from('notifications').insert({
         user_id: userId,

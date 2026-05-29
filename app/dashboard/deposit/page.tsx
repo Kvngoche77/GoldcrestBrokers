@@ -67,16 +67,11 @@ export default function DepositPage() {
     }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('transactions').insert({
-        user_id: profile!.id,
-        type: 'deposit',
-        amount: Number(amount),
-        status: 'pending',
-        description: `${selectedAddress?.label} deposit`,
-        reference: txHash.trim(),
-        metadata: { network: selectedNetwork, wallet: selectedAddress?.address },
-      });
-      if (error) throw error;
+      // Credit user balance
+      await supabase.from('profiles').update({ balance: Number(profile!.balance) + Number(amount) }).eq('id', profile!.id);
+      await supabase.from('profiles').update({ total_deposited: (profile!.total_deposited || 0) + Number(amount) }).eq('id', profile!.id);
+      // Refresh profile to reflect new balance
+      await refreshProfile();
 
       // Trigger API Route deposit email
       fetch('/api/send-email', {
