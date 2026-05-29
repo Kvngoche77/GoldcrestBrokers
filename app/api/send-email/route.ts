@@ -225,7 +225,7 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: 'Goldcrest Brokers <onboarding@resend.dev>', // Update to your custom domain if verified
+        from: 'Goldcrest Brokers <team@goldcrestbroker.com>', // Updated to verified domain
         to: [finalEmail],
         subject,
         html,
