@@ -119,8 +119,8 @@ export default function WithdrawPage() {
         metadata: isBank ? { bank_details: { bank_name: bankName, account_name: accountName, account_number: accountNumber, swift_code: swiftCode } } : { wallet_address: destination, network }
       });
 
-      // Trigger Edge Function withdrawal email
-      fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`, {
+      // Trigger API Route withdrawal email
+      fetch('/api/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

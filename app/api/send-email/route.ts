@@ -1,25 +1,16 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from 'next/server';
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
+export async function POST(req: NextRequest) {
   try {
     const { type, user_id, user_email, user_name, amount, currency, status, tx_id, origin } = await req.json();
 
-    if (!RESEND_API_KEY) {
-      throw new Error("Missing RESEND_API_KEY environment variable");
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!resendApiKey) {
+      return NextResponse.json({ error: 'Missing RESEND_API_KEY environment variable' }, { status: 500 });
     }
 
     let finalEmail = user_email;
@@ -27,8 +18,8 @@ serve(async (req) => {
 
     // Fetch user details from Supabase if we have user_id and are missing details
     if (user_id && (!finalEmail || !finalName)) {
-      if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-        const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      if (supabaseUrl && supabaseServiceKey) {
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
         
         // Fetch user auth details (email)
         const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.getUserById(user_id);
@@ -38,9 +29,9 @@ serve(async (req) => {
 
         // Fetch user profile details (full_name / username)
         const { data: profileData, error: profileErr } = await supabaseAdmin
-          .from("profiles")
-          .select("full_name, username")
-          .eq("id", user_id)
+          .from('profiles')
+          .select('full_name, username')
+          .eq('id', user_id)
           .maybeSingle();
         if (!profileErr && profileData) {
           finalName = finalName || profileData.full_name || profileData.username;
@@ -49,33 +40,33 @@ serve(async (req) => {
     }
 
     if (!finalEmail) {
-      throw new Error("Recipient email address is required");
+      return NextResponse.json({ error: 'Recipient email address is required' }, { status: 400 });
     }
 
-    let subject = "";
-    let html = "";
+    let subject = '';
+    let html = '';
 
     // Email Templates
     switch (type) {
-      case "send_verification": {
-        let verificationLink = "";
-        if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-          const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      case 'send_verification': {
+        let verificationLink = '';
+        if (supabaseUrl && supabaseServiceKey) {
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
           const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
-            type: "signup",
+            type: 'magiclink',
             email: finalEmail,
             options: { redirectTo: `${origin || 'http://localhost:3000'}/auth/callback` }
           });
           
           if (linkErr) {
-            console.error("Error generating verification link:", linkErr);
+            console.error('Error generating verification link:', linkErr);
             throw linkErr;
           }
           
-          verificationLink = linkData?.properties?.action_link || "";
+          verificationLink = linkData?.properties?.action_link || '';
         }
 
-        subject = "Verify Your Email - Goldcrest Brokers";
+        subject = 'Verify Your Email - Goldcrest Brokers';
         html = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
             <h1 style="color: #0f172a; margin-bottom: 16px;">Verify Your Email Address</h1>
@@ -93,8 +84,8 @@ serve(async (req) => {
         break;
       }
 
-      case "email_verified":
-        subject = "Email Verified Successfully - Goldcrest Brokers";
+      case 'email_verified':
+        subject = 'Email Verified Successfully - Goldcrest Brokers';
         html = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
             <h1 style="color: #10b981; margin-bottom: 16px;">Welcome to Goldcrest Brokers!</h1>
@@ -110,7 +101,7 @@ serve(async (req) => {
         `;
         break;
 
-      case "deposit_initiated":
+      case 'deposit_initiated':
         subject = `Deposit Initiated: ${amount} ${currency}`;
         html = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
@@ -141,7 +132,7 @@ serve(async (req) => {
         `;
         break;
 
-      case "withdrawal_initiated":
+      case 'withdrawal_initiated':
         subject = `Withdrawal Request: ${amount} ${currency}`;
         html = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
@@ -168,7 +159,7 @@ serve(async (req) => {
         `;
         break;
 
-      case "withdrawal_approved":
+      case 'withdrawal_approved':
         subject = `Withdrawal Approved & Processed: ${amount} ${currency}`;
         html = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
@@ -196,7 +187,7 @@ serve(async (req) => {
         `;
         break;
 
-      case "investment_created":
+      case 'investment_created':
         subject = `Investment Active: ${amount} ${currency}`;
         html = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
@@ -224,17 +215,17 @@ serve(async (req) => {
         break;
 
       default:
-        throw new Error("Invalid email type");
+        return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });
     }
 
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: "Goldcrest Brokers <onboarding@resend.dev>", // Update to your custom domain if verified
+        from: 'Goldcrest Brokers <onboarding@resend.dev>', // Update to your custom domain if verified
         to: [finalEmail],
         subject,
         html,
@@ -244,18 +235,13 @@ serve(async (req) => {
     const data = await res.json();
 
     if (data.error) {
-      throw new Error(data.error.message);
+      throw new Error(data.error.message || 'Resend error occurred');
     }
 
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return NextResponse.json(data, { status: 200 });
 
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
-    });
+  } catch (error: any) {
+    console.error('Email API Error:', error);
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
-});
+}

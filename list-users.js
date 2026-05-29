@@ -7,9 +7,12 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function listUsers() {
-  const { data, error } = await supabase.from('profiles').select('id, username, is_admin');
+  const { data, error } = await supabase.from('profiles').select('*').limit(1);
   if (error) console.error('Error fetching users:', error);
-  else console.log('Users:', JSON.stringify(data, null, 2));
+  else {
+    console.log('User Profile Columns:', Object.keys(data[0] || {}));
+    console.log('Sample User Profile:', data[0]);
+  }
 }
 
 listUsers();

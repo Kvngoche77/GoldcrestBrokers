@@ -60,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             emailVerified = true;
             console.log('AuthContext: Profile email_verified set to true');
             
-            // Trigger Edge Function welcome email
-            fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`, {
+            // Trigger API Route welcome email
+            fetch('/api/send-email', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

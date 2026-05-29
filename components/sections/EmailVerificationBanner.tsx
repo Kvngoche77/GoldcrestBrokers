@@ -24,13 +24,24 @@ export function EmailVerificationBanner({ onVerify }: EmailVerificationBannerPro
   const handleResendVerification = async () => {
     setIsSending(true);
     try {
-      // Use Supabase's built-in resend functionality
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: profile?.email || '',
+      // Trigger our custom Resend API route
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'send_verification',
+          user_email: profile?.email || '',
+          user_name: profile?.full_name || profile?.username || 'Trader',
+          origin: window.location.origin,
+        }),
       });
 
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to send verification email');
+      }
 
       // Update the verification sent timestamp
       await supabase.rpc('request_email_verification');
@@ -112,12 +123,24 @@ export function EmailVerificationModal({ isOpen, onClose }: { isOpen: boolean; o
   const handleResendVerification = async () => {
     setIsSending(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: profile?.email || '',
+      // Trigger our custom Resend API route
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'send_verification',
+          user_email: profile?.email || '',
+          user_name: profile?.full_name || profile?.username || 'Trader',
+          origin: window.location.origin,
+        }),
       });
 
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to send verification email');
+      }
 
       await supabase.rpc('request_email_verification');
       

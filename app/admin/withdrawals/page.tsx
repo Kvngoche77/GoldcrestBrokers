@@ -62,6 +62,21 @@ export default function AdminWithdrawalsPage() {
         message: `Your withdrawal of $${amount.toFixed(2)} has been approved and is being processed.`,
         type: 'success',
       });
+
+      // Trigger API Route for successful withdrawal email
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'withdrawal_approved',
+          user_id: userId,
+          amount: Number(amount),
+          currency: 'USD',
+          origin: window.location.origin,
+        }),
+      }).catch((err) => console.error('AdminWithdrawals: Error triggering approved email:', err));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-withdrawals'] }); toast.success('Withdrawal approved'); },
     onError: () => toast.error('Failed to approve'),

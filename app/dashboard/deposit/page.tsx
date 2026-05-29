@@ -78,8 +78,8 @@ export default function DepositPage() {
       });
       if (error) throw error;
 
-      // Trigger Edge Function deposit email
-      fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`, {
+      // Trigger API Route deposit email
+      fetch('/api/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

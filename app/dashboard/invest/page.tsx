@@ -131,8 +131,8 @@ export default function InvestPage() {
         description: `${selectedPlan.name} plan activated`,
       });
 
-      // Trigger Edge Function investment email
-      fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-email`, {
+      // Trigger API Route investment email
+      fetch('/api/send-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
