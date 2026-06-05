@@ -248,7 +248,31 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'custom_subject and custom_html are required for followup_email' }, { status: 400 });
         }
         subject = custom_subject;
-        html = custom_html;
+        
+        // If the body doesn't start with standard HTML layout structures, wrap it in the official template layout
+        if (!custom_html.trim().startsWith('<div') && !custom_html.trim().startsWith('<!DOCTYPE') && !custom_html.trim().startsWith('<html')) {
+          const paragraphs = custom_html
+            .split('\n\n')
+            .map((p: string) => `<p style="color: #334155; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">${p.replace(/\n/g, '<br/>')}</p>`)
+            .join('');
+
+          html = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+              <div style="margin-bottom: 24px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+                <span style="font-size: 22px; font-weight: bold; color: #0f172a;">Goldcrest<span style="color: #3b82f6;">Brokers</span></span>
+              </div>
+              <p style="color: #334155; font-size: 16px; line-height: 1.6; font-weight: 500;">Hi ${finalName || 'Trader'},</p>
+              ${paragraphs}
+              <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;"/>
+              <p style="color: #64748b; font-size: 12px; text-align: center; line-height: 1.5; margin-bottom: 0;">
+                Goldcrest Brokers Team<br/>
+                This is an official communication regarding your account.
+              </p>
+            </div>
+          `;
+        } else {
+          html = custom_html;
+        }
         break;
 
       default:

@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Users, DollarSign, TrendingUp, Clock, ArrowRight, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, Clock, ArrowRight, ArrowDownToLine, ArrowUpFromLine, Mail } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 type AdminStats = {
@@ -129,12 +129,13 @@ export default function AdminPage() {
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         {[
           { href: '/admin/users', label: 'Manage Users', icon: Users },
           { href: '/admin/deposits', label: 'Review Deposits', icon: ArrowDownToLine },
           { href: '/admin/withdrawals', label: 'Process Withdrawals', icon: ArrowUpFromLine },
           { href: '/admin/investments', label: 'View Investments', icon: TrendingUp },
+          { href: '/admin/emails', label: 'Send Emails', icon: Mail },
         ].map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
