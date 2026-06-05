@@ -49,10 +49,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify user has permission (ticket owner or admin)
+    // Verify user has permission (ticket owner OR admin)
+    // We allow anyone authenticated to reply if they own the ticket.
+    // Admin replies go through the admin support route.
     if (ticket.user_id !== senderId) {
-      // For now, just check if they're the ticket owner
-      // In production, you might want to check if user is admin
       return NextResponse.json(
         { error: 'Not authorized to send message to this ticket' },
         { status: 403 }
@@ -66,7 +66,6 @@ export async function POST(req: NextRequest) {
         ticket_id: ticketId,
         sender_id: senderId,
         message,
-        is_admin_reply: false,
       })
       .select()
       .single();

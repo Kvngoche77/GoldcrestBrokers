@@ -52,7 +52,13 @@ export default function DepositPage() {
   };
 
   const handleSubmit = async () => {
-    if (isBank) return; // Prevent submission for bank
+    if (isBank) return;
+    // KYC gate
+    if (profile?.kyc_status !== 'verified') {
+      toast.error('KYC verification required. Please verify your identity before depositing.');
+      setTimeout(() => { window.location.href = '/dashboard/kyc'; }, 1500);
+      return;
+    }
     if (!amount || Number(amount) < 50) {
       toast.error('Minimum deposit is $50');
       return;
@@ -105,6 +111,20 @@ export default function DepositPage() {
         <h1 className="text-2xl font-bold text-white">Deposit Funds</h1>
         <p className="text-slate-400 text-sm mt-1">Select a payment method and follow the instructions</p>
       </div>
+
+      {/* KYC Gate Banner */}
+      {profile?.kyc_status !== 'verified' && (
+        <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+          <span className="text-2xl flex-shrink-0">⚠️</span>
+          <div className="flex-1">
+            <p className="text-amber-400 font-semibold text-sm">KYC Verification Required</p>
+            <p className="text-amber-300/80 text-xs mt-0.5">Please complete identity verification to unlock deposits and withdrawals.</p>
+          </div>
+          <a href="/dashboard/kyc" className="flex-shrink-0 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold rounded-lg transition-all">
+            Verify Now
+          </a>
+        </div>
+      )}
 
       {submitted ? (
         <motion.div

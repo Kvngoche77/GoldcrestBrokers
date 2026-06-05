@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
+import toast from 'react-hot-toast';
 
 type AuthContextType = {
   user: User | null;
@@ -134,6 +135,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem('login_session_start');
+          if (stored) {
+            const loginTime = parseInt(stored, 10);
+            if (!isNaN(loginTime) && Date.now() - loginTime > 24 * 60 * 60 * 1000) {
+              console.log('AuthContext: Initial session older than 24 hours. Logging out...');
+              localStorage.removeItem('login_session_start');
+              await supabase.auth.signOut();
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setLoading(false);
+              setTimeout(() => toast.error('Your session has expired. Please log in again.'), 500);
+              return;
+            }
+          } else {
+            localStorage.setItem('login_session_start', Date.now().toString());
+          }
+        }
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -145,13 +168,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchProfile(session.user);
+        if (typeof window !== 'undefined') {
+          if (event === 'SIGNED_IN') {
+            localStorage.setItem('login_session_start', Date.now().toString());
+          } else {
+            const stored = localStorage.getItem('login_session_start');
+            if (!stored) {
+              localStorage.setItem('login_session_start', Date.now().toString());
+            } else {
+              const loginTime = parseInt(stored, 10);
+              if (!isNaN(loginTime) && Date.now() - loginTime > 24 * 60 * 60 * 1000) {
+                console.log('AuthContext: Session older than 24 hours. Logging out...');
+                localStorage.removeItem('login_session_start');
+                await supabase.auth.signOut();
+                setSession(null);
+                setUser(null);
+                setProfile(null);
+                toast.error('Your session has expired. Please log in again.');
+                return;
+              }
+            }
+          }
+        }
+        await fetchProfile(session.user);
       } else {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('login_session_start');
+        }
         setProfile(null);
         setLoading(false);
       }
@@ -161,6 +209,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('login_session_start');
+    }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

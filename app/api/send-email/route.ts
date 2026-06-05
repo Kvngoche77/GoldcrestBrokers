@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { type, user_id, user_email, user_name, amount, currency, status, tx_id, origin } = await req.json();
+    const { type, user_id, user_email, user_name, amount, currency, status, tx_id, origin, custom_subject, custom_html } = await req.json();
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -212,6 +212,43 @@ export async function POST(req: NextRequest) {
             <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">Goldcrest Brokers Team</p>
           </div>
         `;
+        break;
+
+      case 'withdrawal_rejected':
+        subject = `Withdrawal Request Rejected: ${amount} ${currency}`;
+        html = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <h1 style="color: #ef4444; margin-bottom: 16px;">Withdrawal Request Rejected</h1>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">Hi ${finalName || 'Trader'},</p>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">We're sorry to inform you that your withdrawal request has been rejected by our finance team.</p>
+            <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 24px 0;">
+              <h3 style="margin-top: 0; margin-bottom: 12px; color: #0f172a;">Transaction Details</h3>
+              <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Amount:</td>
+                  <td style="padding: 6px 0; color: #ef4444; font-weight: 600; text-align: right;">${amount} ${currency}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Status:</td>
+                  <td style="padding: 6px 0; color: #ef4444; font-weight: 600; text-align: right;">Rejected</td>
+                </tr>
+              </table>
+            </div>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">The funds have been <strong>returned to your account balance</strong> automatically. You may initiate a new withdrawal request at any time.</p>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">If you believe this was an error or need clarification, please contact our support team.</p>
+            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;"/>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">Goldcrest Brokers Team</p>
+          </div>
+        `;
+        break;
+
+      case 'followup_email':
+        // Admin follow-up emails pass subject and html directly
+        if (!custom_subject || !custom_html) {
+          return NextResponse.json({ error: 'custom_subject and custom_html are required for followup_email' }, { status: 400 });
+        }
+        subject = custom_subject;
+        html = custom_html;
         break;
 
       default:

@@ -123,6 +123,19 @@ export default function AdminWithdrawalsPage() {
         message: `Your withdrawal of $${amount.toFixed(2)} was rejected. Funds have been returned to your balance.`,
         type: 'error',
       });
+
+      // Send rejection email (fire-and-forget)
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'withdrawal_rejected',
+          user_id: userId,
+          amount: Number(amount),
+          currency: 'USD',
+          origin: window.location.origin,
+        }),
+      }).catch((err) => console.error('AdminWithdrawals: Error triggering rejection email:', err));
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-withdrawals'] }); toast.success('Withdrawal rejected and funds refunded'); },
     onError: () => toast.error('Failed to reject'),

@@ -54,7 +54,6 @@ export async function POST(req: NextRequest) {
         ticket_id: ticket.id,
         sender_id: userId,
         message,
-        is_admin_reply: false,
       });
 
     if (messageError) {

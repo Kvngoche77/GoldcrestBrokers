@@ -64,6 +64,12 @@ export default function WithdrawPage() {
   });
 
   const handleWithdraw = () => {
+    // KYC gate
+    if (profile?.kyc_status !== 'verified') {
+      toast.error('KYC verification required. Please complete your identity verification before withdrawing.');
+      setTimeout(() => { window.location.href = '/dashboard/kyc'; }, 1500);
+      return;
+    }
     const amt = Number(amount);
     if (!amt || amt < 10) { toast.error('Minimum withdrawal is $10'); return; }
     if (amt > Number(profile?.balance ?? 0)) { toast.error('Insufficient balance'); return; }
@@ -163,6 +169,20 @@ export default function WithdrawPage() {
         <p className="text-slate-400 text-sm mt-1">Available: <span className="text-white font-semibold">${Number(profile?.balance ?? 0).toFixed(2)}</span></p>
       </div>
 
+      {/* KYC Gate Banner */}
+      {profile?.kyc_status !== 'verified' && (
+        <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+          <span className="text-2xl flex-shrink-0">⚠️</span>
+          <div className="flex-1">
+            <p className="text-amber-400 font-semibold text-sm">KYC Verification Required</p>
+            <p className="text-amber-300/80 text-xs mt-0.5">You must complete identity verification before you can withdraw funds.</p>
+          </div>
+          <a href="/dashboard/kyc" className="flex-shrink-0 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold rounded-lg transition-all">
+            Verify Now
+          </a>
+        </div>
+      )}
+
       {submitted ? (
         <motion.div className="glass rounded-2xl p-8 text-center" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
           <CheckCircle2 size={48} className="text-emerald-400 mx-auto mb-4" />
@@ -176,7 +196,25 @@ export default function WithdrawPage() {
           </button>
         </motion.div>
       ) : (
-        <div className="glass rounded-2xl overflow-hidden">
+        <div className="glass rounded-2xl overflow-hidden relative">
+          {/* KYC Overlay */}
+          {profile?.kyc_status !== 'verified' && (
+            <div className="absolute inset-0 bg-[#040c18]/80 backdrop-blur-md z-30 flex flex-col items-center justify-center p-6 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-4">
+                <span className="text-2xl text-amber-500">⚠️</span>
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1.5">KYC Verification Required</h3>
+              <p className="text-slate-400 text-xs max-w-xs mb-5 leading-relaxed">
+                Under regulatory compliance guidelines, please complete your identity verification (KYC) to enable withdrawals and payout requests.
+              </p>
+              <a 
+                href="/dashboard/kyc" 
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-white font-bold text-xs rounded-xl transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Verify Identity Now
+              </a>
+            </div>
+          )}
           {/* Tabs */}
           <div className="flex bg-white/[0.02] border-b border-white/[0.05]">
             <button
