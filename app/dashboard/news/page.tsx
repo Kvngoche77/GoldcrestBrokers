@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Newspaper, ExternalLink, TrendingUp, TrendingDown, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Newspaper, ExternalLink, TrendingUp, TrendingDown, RefreshCw, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 type NewsArticle = {
   id: string;
@@ -141,14 +142,44 @@ export default function NewsPage() {
   const [news, setNews] = useState<NewsArticle[]>(STATIC_NEWS);
   const [filter, setFilter] = useState<'all' | 'positive' | 'negative' | 'neutral'>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
-  const handleRefresh = () => {
+  useEffect(() => {
+    async function fetchLiveNews() {
+      try {
+        const res = await fetch('/api/market-news');
+        if (res.ok) {
+          const data = await res.json();
+          setNews(data);
+        }
+      } catch (err) {
+        console.error('Failed to load live news:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLiveNews();
+  }, []);
+
+  const handleRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/market-news');
+      if (res.ok) {
+        const data = await res.json();
+        setNews(data);
+        setLastRefreshed(new Date());
+        toast.success('Live news updated!');
+      } else {
+        toast.error('Failed to update live news');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Connection error fetching news');
+    } finally {
       setRefreshing(false);
-      setLastRefreshed(new Date());
-    }, 1500);
+    }
   };
 
   const filtered = filter === 'all' ? news : news.filter(n => n.sentiment === filter);

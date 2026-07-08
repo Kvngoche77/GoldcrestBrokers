@@ -37,6 +37,17 @@ function StatCard({
   return href ? <Link href={href}>{content}</Link> : content;
 }
 
+// Helper to calculate time elapsed
+function timeAgo(dateStr: string): string {
+  const secs = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { user, profile, refreshProfile } = useAuth();
@@ -113,6 +124,23 @@ export default function DashboardPage() {
       return (data as Transaction[]) ?? [];
     },
     enabled: !!profile?.id,
+  });
+
+  const { data: liveNews = [] } = useQuery({
+    queryKey: ['market-news-widget'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/market-news');
+        if (res.ok) {
+          const data = await res.json();
+          return data.slice(0, 3);
+        }
+      } catch (err) {
+        console.error('Error loading news widget:', err);
+      }
+      return [];
+    },
+    refetchInterval: 300000, // 5 mins
   });
 
   const activeInvestments = investments.filter((i) => i.status === 'active');
@@ -279,24 +307,30 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="p-4 space-y-4">
-            {[
-              { title: 'Bitcoin Breaks $75k Resistance', source: 'CoinDesk', time: '18m ago', sentiment: 'Bullish' },
-              { title: 'Ethereum ETF Inflows Hit Record', source: 'The Block', time: '45m ago', sentiment: 'Bullish' },
-              { title: 'Fed Signals Rate Stability', source: 'Reuters', time: '1h ago', sentiment: 'Neutral' },
-            ].map((news, i) => (
-              <div key={i} className="flex flex-col gap-1.5 py-2 border-b border-white/[0.04] last:border-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">{news.source}</span>
-                  <span className="text-[10px] text-slate-500">{news.time}</span>
+            {(liveNews.length > 0 ? liveNews : [
+              { title: 'Bitcoin Breaks $75k Resistance', source: 'CoinDesk', publishedAt: new Date().toISOString(), sentiment: 'positive' },
+              { title: 'Ethereum ETF Inflows Hit Record', source: 'The Block', publishedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), sentiment: 'positive' },
+              { title: 'Fed Signals Rate Stability', source: 'Reuters', publishedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(), sentiment: 'neutral' },
+            ]).map((news, i) => {
+              const labelMap: Record<string, string> = { positive: 'Bullish', negative: 'Bearish', neutral: 'Neutral' };
+              const label = labelMap[news.sentiment] || 'Neutral';
+              return (
+                <div key={i} className="flex flex-col gap-1.5 py-2 border-b border-white/[0.04] last:border-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">{news.source}</span>
+                    <span className="text-[10px] text-slate-500">{timeAgo(news.publishedAt)}</span>
+                  </div>
+                  <p className="text-sm font-medium text-white line-clamp-1">{news.title}</p>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full w-fit ${
+                    label === 'Bullish' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                    label === 'Bearish' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                    'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                  }`}>
+                    {label}
+                  </span>
                 </div>
-                <p className="text-sm font-medium text-white line-clamp-1">{news.title}</p>
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full w-fit ${
-                  news.sentiment === 'Bullish' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
-                }`}>
-                  {news.sentiment}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
       </div>
