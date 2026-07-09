@@ -36,6 +36,27 @@ export default function KYCOnboardingPage() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
 
+  // Effect to react to changes in user auth status
+  useEffect(() => {
+    if (user && user.email_confirmed_at) {
+      // Allow onboarded/verified user
+    }
+  }, [user]);
+
+  const [formData, setFormData] = useState({
+    dob: '',
+    email: '',
+    gender: '',
+    country: profile?.country || '',
+    city: '',
+    street: '',
+    zip: '',
+    idType: 'passport',
+    idNumber: '',
+    issueDate: '',
+    expiryDate: '',
+  });
+
   useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
@@ -120,7 +141,7 @@ export default function KYCOnboardingPage() {
               Verify Your Email Address
             </h1>
             <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
-              Thank you for registering! We've sent a verification link to your registered email address:
+              Thank you for registering! We&apos;ve sent a verification link to your registered email address:
             </p>
 
             {/* Glowing Email Badge */}
@@ -147,7 +168,7 @@ export default function KYCOnboardingPage() {
               ) : (
                 <>
                   <RefreshCw size={18} />
-                  I've Verified My Email
+                  I&apos;ve Verified My Email
                 </>
               )}
             </button>
@@ -188,26 +209,7 @@ export default function KYCOnboardingPage() {
     );
   }
 
-  // Effect to react to changes in user auth status
-  useEffect(() => {
-    if (user && user.email_confirmed_at) {
-      // Allow onboarded/verified user
-    }
-  }, [user]);
 
-  const [formData, setFormData] = useState({
-    dob: '',
-    email: '',
-    gender: '',
-    country: profile?.country || '',
-    city: '',
-    street: '',
-    zip: '',
-    idType: 'passport',
-    idNumber: '',
-    issueDate: '',
-    expiryDate: '',
-  });
 
   const progressWidth = ((step - 1) / (STEPS.length - 1)) * 100;
 

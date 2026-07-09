@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
-import { Eye, EyeOff, TrendingUp, Loader as Loader2, Mail, Lock, User, Gift, ArrowRight, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, EyeOff, TrendingUp, Loader as Loader2, Mail, Lock, User, Gift, ArrowRight, Check, ChevronDown, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -121,11 +121,32 @@ export default function RegisterPage() {
     handleSubmit,
     watch,
     trigger,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { referral_code: refCode },
   });
+
+  const [countrySearch, setCountrySearch] = useState('');
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const [phoneCodeSearch, setPhoneCodeSearch] = useState('');
+  const [isPhoneDropdownOpen, setIsPhoneDropdownOpen] = useState(false);
+
+  const selectedCountryName = watch('country');
+  const selectedCountry = countries.find(c => c.name === selectedCountryName);
+
+  const filteredCountries = countries.filter(c =>
+    c.name.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+
+  const selectedPhoneCode = watch('phone_country_code');
+  const selectedCountryCode = countryCodes.find(c => c.code === selectedPhoneCode);
+
+  const filteredPhoneCodes = countryCodes.filter(c =>
+    c.country.toLowerCase().includes(phoneCodeSearch.toLowerCase()) ||
+    c.code.includes(phoneCodeSearch)
+  );
 
   const nextStep = async () => {
     const fields = step === 1 
@@ -278,7 +299,7 @@ export default function RegisterPage() {
                     <label className="text-xs font-medium text-slate-300 mb-1.5 block">Full Name</label>
                     <div className="relative">
                       <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <input {...register('full_name')} placeholder="John Doe" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                      <input {...register('full_name')} placeholder="John Doe" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                     </div>
                     {errors.full_name && <p className="mt-1 text-xs text-red-400">{errors.full_name.message}</p>}
                   </div>
@@ -287,7 +308,7 @@ export default function RegisterPage() {
                     <label className="text-xs font-medium text-slate-300 mb-1.5 block">Username</label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">@</span>
-                      <input {...register('username')} placeholder="johndoe" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                      <input {...register('username')} placeholder="johndoe" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                     </div>
                     {errors.username && <p className="mt-1 text-xs text-red-400">{errors.username.message}</p>}
                   </div>
@@ -297,7 +318,7 @@ export default function RegisterPage() {
                   <label className="text-xs font-medium text-slate-300 mb-1.5 block">Email Address</label>
                   <div className="relative">
                     <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input {...register('email')} type="email" placeholder="you@example.com" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                    <input {...register('email')} type="email" placeholder="you@example.com" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                   </div>
                   {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
                 </div>
@@ -305,16 +326,72 @@ export default function RegisterPage() {
                 <div>
                   <label className="text-xs font-medium text-slate-300 mb-1.5 block">Phone Number</label>
                   <div className="flex gap-2">
-                    <div className="relative w-32 flex-shrink-0">
-                      <select {...register('phone_country_code')} className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-all appearance-none">
-                        <option value="">Flag</option>
-                        {countryCodes.map((c) => (
-                          <option key={c.code} value={c.code}>{c.flag} +{c.code}</option>
-                        ))}
-                      </select>
+                    <div className="relative w-36 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsPhoneDropdownOpen(!isPhoneDropdownOpen)}
+                        className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-3 text-sm text-left text-white focus:outline-none focus:border-blue-500/60 transition-all flex items-center justify-between animate-all"
+                      >
+                        {selectedCountryCode ? (
+                          <span className="flex items-center gap-1.5">
+                            <span className="text-base">{selectedCountryCode.flag}</span>
+                            <span>+{selectedCountryCode.code}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-500">Code</span>
+                        )}
+                        <ChevronDown size={14} className={`text-slate-400 transition-transform ${isPhoneDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      <input type="hidden" {...register('phone_country_code')} />
+
+                      <AnimatePresence>
+                        {isPhoneDropdownOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute z-50 w-48 mt-2 bg-[#0c1626]/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
+                          >
+                            <div className="p-2 border-b border-white/10 relative">
+                              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                              <input
+                                type="text"
+                                placeholder="Search..."
+                                value={phoneCodeSearch}
+                                onChange={(e) => setPhoneCodeSearch(e.target.value)}
+                                className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-8 pr-2 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+                              />
+                            </div>
+                            <div className="max-h-48 overflow-y-auto py-1">
+                              {filteredPhoneCodes.map((c) => (
+                                <button
+                                  key={c.code + '-' + c.country}
+                                  type="button"
+                                  onClick={() => {
+                                    setValue('phone_country_code', c.code, { shouldValidate: true });
+                                    setIsPhoneDropdownOpen(false);
+                                    setPhoneCodeSearch('');
+                                  }}
+                                  className={`w-full px-3 py-2 text-left hover:bg-white/5 text-slate-300 hover:text-white transition-all flex items-center justify-between text-xs ${
+                                    selectedPhoneCode === c.code ? 'bg-blue-600/10 text-blue-400 font-semibold' : ''
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <span>{c.flag}</span>
+                                    <span>{c.country} (+{c.code})</span>
+                                  </span>
+                                  {selectedPhoneCode === c.code && <Check size={12} className="text-blue-400" />}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
+
                     <div className="relative flex-1">
-                      <input {...register('phone')} placeholder="1234567890" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                      <input {...register('phone')} placeholder="1234567890" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                     </div>
                   </div>
                   {(errors.phone || errors.phone_country_code) && <p className="mt-1 text-xs text-red-400">{errors.phone?.message || errors.phone_country_code?.message}</p>}
@@ -324,7 +401,7 @@ export default function RegisterPage() {
                   <label className="text-xs font-medium text-slate-300 mb-1.5 block">Password</label>
                   <div className="relative">
                     <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input {...register('password')} type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                    <input {...register('password')} type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -343,12 +420,12 @@ export default function RegisterPage() {
                   <label className="text-xs font-medium text-slate-300 mb-1.5 block">Confirm Password</label>
                   <div className="relative">
                     <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input {...register('confirm_password')} type="password" placeholder="••••••••" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                    <input {...register('confirm_password')} type="password" placeholder="••••••••" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                   </div>
                   {errors.confirm_password && <p className="mt-1 text-xs text-red-400">{errors.confirm_password.message}</p>}
                 </div>
 
-                <button type="button" onClick={nextStep} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue group mt-4">
+                <button type="button" onClick={nextStep} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 glow-blue group mt-4 active:scale-[0.99]">
                   Next <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </button>
 
@@ -364,7 +441,7 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-3 border border-white/10"
+                  className="w-full py-3 bg-white hover:bg-slate-100 text-slate-900 font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-3 border border-slate-200 shadow-md hover:shadow-lg active:scale-[0.99]"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -378,38 +455,112 @@ export default function RegisterPage() {
             ) : (
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2">
+                  <div className="col-span-2 relative">
                     <label className="text-xs font-medium text-slate-300 mb-1.5 block">Country</label>
-                    <select {...register('country')} className="w-full bg-[#060d1a] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500/60 transition-all appearance-none">
-                      <option value="">Select Country</option>
-                      {countries.map((c) => (
-                        <option key={c.code} value={c.name}>{c.name}</option>
-                      ))}
-                    </select>
+                    
+                    {/* Custom Select Trigger */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                      className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-left text-white focus:outline-none focus:border-blue-500/60 transition-all flex items-center justify-between"
+                    >
+                      {selectedCountry ? (
+                        <span className="flex items-center gap-2">
+                          <img
+                            src={`https://flagcdn.com/w20/${selectedCountry.code.toLowerCase()}.png`}
+                            alt={selectedCountry.name}
+                            className="w-5 h-3.5 object-cover rounded"
+                          />
+                          {selectedCountry.name}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">Select Country</span>
+                      )}
+                      <ChevronDown size={16} className={`text-slate-400 transition-transform ${isCountryDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Hidden input for react-hook-form registration */}
+                    <input type="hidden" {...register('country')} />
+
+                    {/* Custom Dropdown Menu */}
+                    <AnimatePresence>
+                      {isCountryDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute z-50 w-full mt-2 bg-[#0c1626]/95 border border-white/10 rounded-2xl shadow-2xl overflow-hidden backdrop-blur-xl"
+                        >
+                          {/* Search Input */}
+                          <div className="p-2 border-b border-white/10 relative">
+                            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+                            <input
+                              type="text"
+                              placeholder="Search country..."
+                              value={countrySearch}
+                              onChange={(e) => setCountrySearch(e.target.value)}
+                              className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+                            />
+                          </div>
+
+                          {/* Country List */}
+                          <div className="max-h-60 overflow-y-auto py-1">
+                            {filteredCountries.length === 0 ? (
+                              <div className="px-4 py-3 text-xs text-slate-500 text-center">No countries found</div>
+                            ) : (
+                              filteredCountries.map((c) => (
+                                <button
+                                  key={c.code}
+                                  type="button"
+                                  onClick={() => {
+                                    setValue('country', c.name, { shouldValidate: true });
+                                    setIsCountryDropdownOpen(false);
+                                    setCountrySearch('');
+                                  }}
+                                  className={`w-full px-4 py-2.5 text-xs text-left hover:bg-white/5 text-slate-300 hover:text-white transition-all flex items-center justify-between ${
+                                    selectedCountryName === c.name ? 'bg-blue-600/10 text-blue-400 font-semibold' : ''
+                                  }`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <img
+                                      src={`https://flagcdn.com/w20/${c.code.toLowerCase()}.png`}
+                                      alt={c.name}
+                                      className="w-5 h-3.5 object-cover rounded"
+                                    />
+                                    {c.name}
+                                  </span>
+                                  {selectedCountryName === c.name && <Check size={14} className="text-blue-400" />}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     {errors.country && <p className="mt-1 text-xs text-red-400">{errors.country.message}</p>}
                   </div>
 
                   <div>
                     <label className="text-xs font-medium text-slate-300 mb-1.5 block">City</label>
-                    <input {...register('city')} placeholder="New York" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                    <input {...register('city')} placeholder="New York" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                     {errors.city && <p className="mt-1 text-xs text-red-400">{errors.city.message}</p>}
                   </div>
 
                   <div>
                     <label className="text-xs font-medium text-slate-300 mb-1.5 block">Postal/Zip Code</label>
-                    <input {...register('postal_code')} placeholder="10001" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                    <input {...register('postal_code')} placeholder="10001" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                     {errors.postal_code && <p className="mt-1 text-xs text-red-400">{errors.postal_code.message}</p>}
                   </div>
 
                   <div className="col-span-2 grid grid-cols-3 gap-3">
                     <div className="col-span-2">
                       <label className="text-xs font-medium text-slate-300 mb-1.5 block">Street Address</label>
-                      <input {...register('street')} placeholder="Wall Street" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                      <input {...register('street')} placeholder="Wall Street" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                       {errors.street && <p className="mt-1 text-xs text-red-400">{errors.street.message}</p>}
                     </div>
                     <div>
                       <label className="text-xs font-medium text-slate-300 mb-1.5 block">House No.</label>
-                      <input {...register('house_number')} placeholder="12A" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all" />
+                      <input {...register('house_number')} placeholder="12A" className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200" />
                       {errors.house_number && <p className="mt-1 text-xs text-red-400">{errors.house_number.message}</p>}
                     </div>
                   </div>
@@ -419,7 +570,7 @@ export default function RegisterPage() {
                   <label className="text-xs font-medium text-slate-300 mb-1.5 block">Referral Code (Optional)</label>
                   <div className="relative">
                     <Gift size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input {...register('referral_code')} placeholder="Enter code" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all uppercase" />
+                    <input {...register('referral_code')} placeholder="Enter code" className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 uppercase" />
                   </div>
                 </div>
 

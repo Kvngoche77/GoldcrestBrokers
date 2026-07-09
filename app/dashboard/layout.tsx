@@ -163,7 +163,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               Verify Your Email Address
             </h1>
             <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-6">
-              Thank you for registering! We've sent a verification link to your registered email address:
+              Thank you for registering! We&apos;ve sent a verification link to your registered email address:
             </p>
 
             {/* Glowing Email Badge */}
@@ -190,7 +190,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               ) : (
                 <>
                   <RefreshCw size={18} />
-                  I've Verified My Email
+                  I&apos;ve Verified My Email
                 </>
               )}
             </button>

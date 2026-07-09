@@ -9,7 +9,9 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      if (event === 'PASSWORD_RECOVERY') {
+        router.push('/auth/reset-password');
+      } else if (event === 'SIGNED_IN' && session) {
         router.push('/dashboard');
       } else if (event === 'INITIAL_SESSION' && session) {
          router.push('/dashboard');

@@ -30,6 +30,33 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
+      // First try sending branded recovery email via Resend API
+      try {
+        const res = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'send_recovery',
+            user_email: data.email,
+            origin: window.location.origin,
+          }),
+        });
+        
+        const responseData = await res.json();
+        if (res.ok && !responseData.error) {
+          setEmailSent(true);
+          return;
+        }
+        
+        // Log fallback trace
+        console.warn('Resend password reset API failed or unconfigured, falling back to Supabase client mailer:', responseData.error || res.statusText);
+      } catch (apiErr) {
+        console.warn('Failed to reach password reset email API, falling back to Supabase client mailer:', apiErr);
+      }
+
+      // Fallback: Use direct Supabase password reset (which uses configured SMTP or default Supabase template)
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
@@ -62,8 +89,8 @@ export default function ForgotPasswordPage() {
             <TrendingUp size={22} className="text-white" />
           </div>
           <span className="font-bold text-2xl">
-            <span className="text-white">Iron</span>
-            <span className="gradient-text">Gates</span>
+            <span className="text-white">Goldcrest</span>
+            <span className="gradient-text">Broker</span>
           </span>
         </Link>
 

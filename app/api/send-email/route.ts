@@ -84,6 +84,49 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      case 'send_recovery': {
+        let recoveryLink = '';
+        if (supabaseUrl && supabaseServiceKey) {
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+          const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'recovery',
+            email: finalEmail,
+            options: { redirectTo: `${origin || 'http://localhost:3000'}/auth/reset-password` }
+          });
+          
+          if (linkErr) {
+            console.error('Error generating recovery link:', linkErr);
+            throw linkErr;
+          }
+          
+          recoveryLink = linkData?.properties?.action_link || '';
+        }
+
+        subject = 'Reset Your Password - Goldcrest Brokers';
+        html = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+            <div style="margin-bottom: 24px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+              <span style="font-size: 22px; font-weight: bold; color: #0f172a;">Goldcrest<span style="color: #2563eb;">Brokers</span></span>
+            </div>
+            <h1 style="color: #0f172a; margin-bottom: 16px; font-size: 20px; font-weight: 700; text-align: center;">Reset Your Password</h1>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">Hi ${finalName || 'Trader'},</p>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">We received a request to reset the password for your Goldcrest Brokers account. Click the button below to set a new password:</p>
+            <p style="margin: 30px 0; text-align: center;">
+              <a href="${recoveryLink}" style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">Reset Password</a>
+            </p>
+            <p style="color: #64748b; font-size: 14px; line-height: 1.5;">This link will expire in 2 hours for security reasons. If you did not request a password reset, you can safely ignore this email and your password will remain unchanged.</p>
+            <p style="color: #64748b; font-size: 14px; margin-top: 10px;">If the button above does not work, copy and paste the link below into your browser:</p>
+            <p style="word-break: break-all; font-size: 14px; background-color: #f8fafc; padding: 12px; border-radius: 8px; border: 1px dashed #cbd5e1;"><a href="${recoveryLink}" style="color: #2563eb; font-family: monospace;">${recoveryLink}</a></p>
+            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;"/>
+            <p style="color: #64748b; font-size: 12px; text-align: center; line-height: 1.5; margin-bottom: 0;">
+              Goldcrest Brokers Team<br/>
+              This is an automated security message. Please do not reply directly.
+            </p>
+          </div>
+        `;
+        break;
+      }
+
       case 'email_verified':
         subject = 'Email Verified Successfully - Goldcrest Brokers';
         html = `

@@ -165,7 +165,8 @@ export async function GET() {
 
     const results = await Promise.allSettled(
       FEEDS.map(async feed => {
-        const res = await fetch(feed.url, { next: { revalidate: 300 } }); // Cache for 5 minutes
+        // Cache each RSS feed for 24 hours (86400 seconds) — news updates daily
+        const res = await fetch(feed.url, { next: { revalidate: 86400 } });
         if (!res.ok) throw new Error(`Failed to fetch ${feed.name}`);
         const xmlText = await res.text();
         return parseRss(xmlText, feed.name);
@@ -183,7 +184,7 @@ export async function GET() {
     // If no news was fetched, return fallback
     if (allNews.length === 0) {
       return NextResponse.json(FALLBACK_NEWS, {
-        headers: { 'Cache-Control': 'public, max-age=60' }
+        headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' }
       });
     }
 
@@ -195,14 +196,15 @@ export async function GET() {
 
     return NextResponse.json(limitedNews, {
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+        // 24h cache — fresh news delivered daily, stale served for 48h during revalidation
+        'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=172800'
       }
     });
 
   } catch (error: any) {
     console.error('Unexpected error fetching market news:', error);
     return NextResponse.json(FALLBACK_NEWS, {
-      headers: { 'Cache-Control': 'public, max-age=60' }
+      headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200' }
     });
   }
 }

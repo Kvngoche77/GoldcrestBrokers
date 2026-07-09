@@ -311,7 +311,7 @@ export default function DashboardPage() {
               { title: 'Bitcoin Breaks $75k Resistance', source: 'CoinDesk', publishedAt: new Date().toISOString(), sentiment: 'positive' },
               { title: 'Ethereum ETF Inflows Hit Record', source: 'The Block', publishedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), sentiment: 'positive' },
               { title: 'Fed Signals Rate Stability', source: 'Reuters', publishedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(), sentiment: 'neutral' },
-            ]).map((news, i) => {
+            ]).map((news: any, i: number) => {
               const labelMap: Record<string, string> = { positive: 'Bullish', negative: 'Bearish', neutral: 'Neutral' };
               const label = labelMap[news.sentiment] || 'Neutral';
               return (

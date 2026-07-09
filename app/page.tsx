@@ -13,6 +13,8 @@ import { InvestmentPlans } from '@/components/sections/InvestmentPlans';
 import { Testimonials } from '@/components/sections/Testimonials';
 import { ReferralSection } from '@/components/sections/ReferralSection';
 import { WhyUsSection } from '@/components/sections/WhyUsSection';
+import { WhatIsBrokerage } from '@/components/sections/WhatIsBrokerage';
+import { HowInvestingWorks } from '@/components/sections/HowInvestingWorks';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { WithdrawalPopup } from '@/components/ui/WithdrawalPopup';
 import { supabase } from '@/lib/supabase';
@@ -186,7 +188,9 @@ export default function HomePage() {
         <Hero />
         <MarketTicker />
         <MarketData />
+        <WhatIsBrokerage />
         <TradingViewFeatures />
+        <HowInvestingWorks />
         {plans.length > 0 && <ProfitCalculatorSection plans={plans} />}
         <InvestmentPlans />
         <WhyUsSection />

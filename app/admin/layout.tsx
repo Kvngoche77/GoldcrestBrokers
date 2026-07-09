@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, ArrowDownToLine, ArrowUpFromLine,
-  TrendingUp, Settings, LogOut, Shield, ChevronRight, ShieldCheck, Bell, Box, Headphones, Copy, Megaphone, Mail
+  TrendingUp, Settings, LogOut, Shield, ChevronRight, ShieldCheck, Bell, Box, Headphones, Copy, Megaphone, Mail, ClipboardList
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
@@ -14,6 +14,7 @@ const adminNav = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/deposits', label: 'Deposits', icon: ArrowDownToLine },
   { href: '/admin/withdrawals', label: 'Withdrawals', icon: ArrowUpFromLine },
+  { href: '/admin/transactions', label: 'Transaction Manager', icon: ClipboardList },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/kyc', label: 'KYC Verifications', icon: ShieldCheck },
   { href: '/admin/investments', label: 'Investments', icon: TrendingUp },

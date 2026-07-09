@@ -91,7 +91,7 @@ export default function AdminCopyTradingPage() {
           toast.error(
             <div>
               <p className="font-bold">Storage Bucket Error</p>
-              <p className="text-xs">The "avatars" bucket is missing. Please create it in your Supabase Dashboard or use an image URL instead.</p>
+              <p className="text-xs">The &quot;avatars&quot; bucket is missing. Please create it in your Supabase Dashboard or use an image URL instead.</p>
             </div>, 
             { duration: 6000 }
           );

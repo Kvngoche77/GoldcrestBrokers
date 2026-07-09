@@ -177,3 +177,33 @@ body { top: 0 !important; }
   color: white;
 }
 .goog-logo-link { display: none !important; }
+
+/* Smooth scroll anchor offset (for sticky navbar) */
+section[id] {
+  scroll-margin-top: 80px;
+}
+
+/* Floating animation for decorative elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+.animate-float { animation: float 5s ease-in-out infinite; }
+
+/* Section divider gradient */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(29,110,245,0.3), rgba(16,217,130,0.2), transparent);
+}
+
+/* Premium card solid colors */
+.card-solid-blue  { background: linear-gradient(135deg, #1d4ed8, #1e40af); }
+.card-solid-emerald { background: linear-gradient(135deg, #059669, #065f46); }
+.card-solid-violet { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+.card-solid-amber  { background: linear-gradient(135deg, #d97706, #92400e); }
+.card-solid-cyan   { background: linear-gradient(135deg, #0891b2, #164e63); }
+.card-solid-rose   { background: linear-gradient(135deg, #e11d48, #9f1239); }
+
+/* Text balance for headings */
+h1, h2, h3 { text-wrap: balance; }
+

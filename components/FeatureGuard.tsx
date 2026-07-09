@@ -108,7 +108,7 @@ export default function FeatureGuard({ children, allowedFeatures = [] }: Feature
         </div>
 
         <p className="text-xs text-slate-600 mt-4">
-          Didn't receive the email? Check your spam folder or{' '}
+          Didn&apos;t receive the email? Check your spam folder or{' '}
           <button onClick={handleResendEmail} className="text-blue-400 hover:underline">
             click here to resend
           </button>

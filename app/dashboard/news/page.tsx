@@ -200,7 +200,7 @@ export default function NewsPage() {
             Market News
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            Latest crypto & financial market updates · Last updated {timeAgo(lastRefreshed.toISOString())}
+            Latest crypto & financial market updates · Refreshes every 24 hours · Last fetched {timeAgo(lastRefreshed.toISOString())}
           </p>
         </div>
         <button
@@ -325,7 +325,7 @@ export default function NewsPage() {
       {/* Data source note */}
       <div className="flex items-center gap-2 text-xs text-slate-600 pt-2">
         <Wifi size={12} />
-        <span>Market data refreshes every 15 minutes. News sourced from leading crypto publications.</span>
+        <span>News sourced from leading crypto publications. Content refreshes every 24 hours automatically to bring you the latest market insights.</span>
       </div>
     </div>
   );

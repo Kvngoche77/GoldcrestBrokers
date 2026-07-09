@@ -34,12 +34,7 @@ type Subscription = {
   status: 'active' | 'cancelled' | 'expired';
   created_at: string;
   last_processed_at: string | null;
-  copy_traders?: {
-    name: string;
-    avatar_url: string;
-    win_rate: number;
-    roi_percent: number;
-  };
+  copy_traders?: any;
 };
 
 type Position = {
@@ -132,7 +127,9 @@ export default function CopyTradingPage() {
       // Attach trader names
       return (posData as Position[]).map(pos => {
         const sub = userSubs.find(s => s.trader_id === pos.trader_id);
-        return { ...pos, trader_name: (sub?.copy_traders as any)?.name ?? 'Unknown' };
+        const rawTrader = sub?.copy_traders;
+        const trader = Array.isArray(rawTrader) ? rawTrader[0] : rawTrader;
+        return { ...pos, trader_name: trader?.name ?? 'Unknown' };
       });
     },
     enabled: subscribedTraderIds.length > 0,
@@ -527,7 +524,9 @@ export default function CopyTradingPage() {
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold text-slate-300">Active Subscriptions</h3>
                   {userSubs.map(sub => {
-                    const trader = sub.copy_traders as any;
+                    const trader = Array.isArray(sub.copy_traders)
+                      ? sub.copy_traders[0]
+                      : sub.copy_traders;
                     return (
                       <div key={sub.id} className="glass rounded-2xl p-4 border border-white/[0.05] flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
@@ -713,7 +712,7 @@ export default function CopyTradingPage() {
                 <div className="p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 flex gap-3">
                   <Info size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    Profits and losses from {selectedTrader.name}&apos;s trades will be automatically applied to your balance. Use the "Sync Profits" button to claim latest earnings.
+                    Profits and losses from {selectedTrader.name}&apos;s trades will be automatically applied to your balance. Use the &quot;Sync Profits&quot; button to claim latest earnings.
                   </p>
                 </div>
 

@@ -465,7 +465,7 @@ export default function AdminUsersPage() {
                 <div className="flex items-start gap-2 p-3 bg-amber-500/5 rounded-xl border border-amber-500/10">
                   <AlertCircle size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-400/80">
-                    This change will be recorded in the transaction log and reflected immediately in the user's dashboard.
+                    This change will be recorded in the transaction log and reflected immediately in the user&apos;s dashboard.
                   </p>
                 </div>
 
