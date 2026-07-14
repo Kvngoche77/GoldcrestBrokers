@@ -63,8 +63,13 @@ export default function DepositPage() {
       toast.error('Minimum deposit is $50');
       return;
     }
-    if (!txHash.trim()) {
+    const cleanHash = txHash.trim();
+    if (!cleanHash) {
       toast.error('Please enter your transaction hash/ID');
+      return;
+    }
+    if (cleanHash.length < 64 || cleanHash.length > 86) {
+      toast.error('Transaction hash must be between 64 and 86 characters in length.');
       return;
     }
     if (!selectedNetwork) {
@@ -73,11 +78,18 @@ export default function DepositPage() {
     }
     setSubmitting(true);
     try {
-      // Credit user balance
-      await supabase.from('profiles').update({ balance: Number(profile!.balance) + Number(amount) }).eq('id', profile!.id);
-      await supabase.from('profiles').update({ total_deposited: (profile!.total_deposited || 0) + Number(amount) }).eq('id', profile!.id);
-      // Refresh profile to reflect new balance
-      await refreshProfile();
+      // Create pending transaction in transactions table instead of updating balance
+      const { error: txError } = await supabase.from('transactions').insert({
+        user_id: profile!.id,
+        type: 'deposit',
+        amount: Number(amount),
+        status: 'pending',
+        description: `Deposit — ${selectedAddress?.label || selectedNetwork}`,
+        reference: cleanHash,
+        metadata: { network: selectedNetwork }
+      });
+
+      if (txError) throw txError;
 
       // Trigger API Route deposit email
       fetch('/api/send-email', {
@@ -92,13 +104,15 @@ export default function DepositPage() {
           amount: Number(amount),
           currency: 'USD',
           status: 'Pending',
-          tx_id: txHash.trim(),
+          tx_id: cleanHash,
+          origin: window.location.origin,
         }),
       }).catch((err) => console.error('DepositPage: Error triggering deposit email:', err));
 
       setSubmitted(true);
       toast.success('Deposit submitted for review!');
-    } catch {
+    } catch (err) {
+      console.error('DepositPage: Error submitting deposit:', err);
       toast.error('Failed to submit deposit');
     } finally {
       setSubmitting(false);

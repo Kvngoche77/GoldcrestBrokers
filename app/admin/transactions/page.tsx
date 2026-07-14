@@ -253,7 +253,7 @@ export default function AdminTransactionsPage() {
       </div>
 
       {/* User Selector */}
-      <div className="glass rounded-2xl p-5 border border-white/[0.05]">
+      <div className={`glass rounded-2xl p-5 border border-white/[0.05] relative ${isUserDropOpen ? 'z-20' : 'z-10'}`}>
         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 block">Select User</label>
         <div className="relative">
           <button

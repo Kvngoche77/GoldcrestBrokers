@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
         `;
         break;
 
-      case 'deposit_initiated':
+      case 'deposit_initiated': {
         subject = `Deposit Initiated: ${amount} ${currency}`;
         html = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
@@ -173,7 +173,88 @@ export async function POST(req: NextRequest) {
             <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">Goldcrest Brokers Team</p>
           </div>
         `;
+
+        // Send notification email to the admin
+        try {
+          if (supabaseUrl && supabaseServiceKey) {
+            const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+            const { data: adminProfiles } = await supabaseAdmin
+              .from('profiles')
+              .select('id')
+              .eq('is_admin', true);
+            
+            const adminEmails: string[] = [];
+            if (adminProfiles) {
+              for (const admin of adminProfiles) {
+                const { data: authData } = await supabaseAdmin.auth.admin.getUserById(admin.id);
+                if (authData?.user?.email) {
+                  adminEmails.push(authData.user.email);
+                }
+              }
+            }
+
+            // Fallback if no admin emails are found
+            if (adminEmails.length === 0) {
+              adminEmails.push('team@goldcrestbroker.com');
+            }
+
+            const adminSubject = `[Action Required] New Deposit Approval Request - $${amount}`;
+            const adminHtml = `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+                <div style="margin-bottom: 24px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+                  <span style="font-size: 22px; font-weight: bold; color: #0f172a;">Goldcrest<span style="color: #2563eb;">Brokers</span></span>
+                </div>
+                <h1 style="color: #0f172a; margin-bottom: 16px; font-size: 20px; font-weight: 700;">New Deposit Approval Request</h1>
+                <p style="color: #334155; font-size: 16px; line-height: 1.5;">Hello Admin,</p>
+                <p style="color: #334155; font-size: 16px; line-height: 1.5;">A user has submitted a deposit request that requires your review and approval.</p>
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 24px 0;">
+                  <h3 style="margin-top: 0; margin-bottom: 12px; color: #0f172a;">Deposit Details</h3>
+                  <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; font-weight: 500;">User Name:</td>
+                      <td style="padding: 6px 0; color: #0f172a; font-weight: 600; text-align: right;">${finalName || 'Trader'}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; font-weight: 500;">User Email:</td>
+                      <td style="padding: 6px 0; color: #0f172a; font-weight: 600; text-align: right;">${finalEmail}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Amount:</td>
+                      <td style="padding: 6px 0; color: #0f172a; font-weight: 600; text-align: right;">$${Number(amount).toFixed(2)} ${currency}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Transaction Hash/ID:</td>
+                      <td style="padding: 6px 0; color: #0f172a; font-family: monospace; text-align: right; word-break: break-all;">${tx_id || 'N/A'}</td>
+                    </tr>
+                  </table>
+                </div>
+                <p style="margin: 30px 0; text-align: center;">
+                  <a href="${origin || 'http://localhost:3000'}/admin/deposits" style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">Go to Admin Deposits Dashboard</a>
+                </p>
+                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;"/>
+                <p style="color: #64748b; font-size: 12px; text-align: center;">Goldcrest Brokers Team</p>
+              </div>
+            `;
+
+            await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${resendApiKey}`,
+              },
+              body: JSON.stringify({
+                from: 'Goldcrest Brokers <team@goldcrestbroker.com>',
+                to: adminEmails,
+                subject: adminSubject,
+                html: adminHtml,
+              }),
+            });
+          }
+        } catch (adminEmailErr) {
+          console.error('Error sending admin notification email:', adminEmailErr);
+        }
         break;
+      }
 
       case 'withdrawal_initiated':
         subject = `Withdrawal Request: ${amount} ${currency}`;
