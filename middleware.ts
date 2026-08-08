@@ -12,7 +12,15 @@ export function middleware(request: NextRequest) {
     'X-Frame-Options': 'SAMEORIGIN',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'origin-when-cross-origin',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.tradingview.com https://*.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' blob: data: https://*.supabase.co https://*.tradingview.com https://*.google.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://*.tradingview.com; frame-src 'self' https://*.tradingview.com https://*.google.com;",
+    'Content-Security-Policy': [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.tradingview.com https://translate.google.com https://translate.googleapis.com https://www.gstatic.com https://*.google.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://translate.googleapis.com",
+      "img-src 'self' blob: data: https://*.supabase.co https://*.tradingview.com https://*.google.com https://www.gstatic.com https://translate.google.com https://translate.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com https://www.gstatic.com",
+      "connect-src 'self' https://*.supabase.co https://*.tradingview.com https://translate.googleapis.com https://translate-pa.googleapis.com https://*.google.com",
+      "frame-src 'self' https://*.tradingview.com https://*.google.com https://translate.google.com",
+    ].join('; '),
   };
 
   Object.entries(securityHeaders).forEach(([key, value]) => {

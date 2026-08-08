@@ -164,8 +164,56 @@ export type Trader = {
   is_active: boolean;
   trades_won: number;
   trades_lost: number;
+  total_active_days?: number;
+  currency?: string;
+  leverage?: string;
+  platform?: string;
+  account_type?: string;
+  risk_score?: number;
+  max_drawdown?: number;
+  equity?: number;
+  performance_history?: Array<{ month: string; roi: number }>;
+  strategy_history?: Array<{
+    id: string;
+    symbol: string;
+    type: 'BUY' | 'SELL';
+    entry_price: number;
+    exit_price: number;
+    pnl_percent: number;
+    date: string;
+  }>;
   created_at?: string;
   updated_at?: string;
+};
+
+export type Subscription = {
+  id: string;
+  user_id: string;
+  trader_id: string;
+  amount: number;
+  status: 'active' | 'cancelled' | 'expired' | 'completed';
+  created_at: string;
+  expires_at?: string;
+  days_credited?: number;
+  last_credited_at?: string;
+  daily_roi_percent?: number;
+  copy_traders?: Trader;
+};
+
+export type CopyTraderApplication = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  experience_years: number;
+  trading_style: string;
+  account_type: string;
+  platform: string;
+  mt5_account_number: string;
+  requested_fee: number;
+  bio: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
 };
 
 export type WithdrawalAlert = {
