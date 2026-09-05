@@ -1,64 +1,100 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { Languages, ChevronDown, Check, Globe } from 'lucide-react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { ChevronDown, Check, Globe } from 'lucide-react';
 
 // -----------------------------------------------------------------
-// Supported languages for the manual picker fallback
+// Supported languages
 // -----------------------------------------------------------------
 const SUPPORTED_LANGUAGES = [
-  { code: 'en', label: 'English', flag: '🇬🇧' },
-  { code: 'es', label: 'Español', flag: '🇪🇸' },
-  { code: 'fr', label: 'Français', flag: '🇫🇷' },
-  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
-  { code: 'pt', label: 'Português', flag: '🇵🇹' },
-  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
-  { code: 'zh-CN', label: '中文 (简体)', flag: '🇨🇳' },
-  { code: 'zh-TW', label: '中文 (繁體)', flag: '🇹🇼' },
-  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-  { code: 'ja', label: '日本語', flag: '🇯🇵' },
-  { code: 'ko', label: '한국어', flag: '🇰🇷' },
-  { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
-  { code: 'pl', label: 'Polski', flag: '🇵🇱' },
-  { code: 'nl', label: 'Nederlands', flag: '🇳🇱' },
-  { code: 'sv', label: 'Svenska', flag: '🇸🇪' },
-  { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
-  { code: 'ms', label: 'Melayu', flag: '🇲🇾' },
-  { code: 'th', label: 'ภาษาไทย', flag: '🇹🇭' },
-  { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'uk', label: 'Українська', flag: '🇺🇦' },
-  { code: 'ro', label: 'Română', flag: '🇷🇴' },
-  { code: 'cs', label: 'Čeština', flag: '🇨🇿' },
-  { code: 'hu', label: 'Magyar', flag: '🇭🇺' },
+  { code: 'en',    label: 'English',      flag: '🇬🇧' },
+  { code: 'es',    label: 'Español',      flag: '🇪🇸' },
+  { code: 'fr',    label: 'Français',     flag: '🇫🇷' },
+  { code: 'de',    label: 'Deutsch',      flag: '🇩🇪' },
+  { code: 'pt',    label: 'Português',    flag: '🇵🇹' },
+  { code: 'ar',    label: 'العربية',      flag: '🇸🇦' },
+  { code: 'zh-CN', label: '中文 (简体)',  flag: '🇨🇳' },
+  { code: 'zh-TW', label: '中文 (繁體)',  flag: '🇹🇼' },
+  { code: 'ru',    label: 'Русский',      flag: '🇷🇺' },
+  { code: 'ja',    label: '日本語',       flag: '🇯🇵' },
+  { code: 'ko',    label: '한국어',       flag: '🇰🇷' },
+  { code: 'hi',    label: 'हिन्दी',      flag: '🇮🇳' },
+  { code: 'it',    label: 'Italiano',     flag: '🇮🇹' },
+  { code: 'tr',    label: 'Türkçe',       flag: '🇹🇷' },
+  { code: 'pl',    label: 'Polski',       flag: '🇵🇱' },
+  { code: 'nl',    label: 'Nederlands',   flag: '🇳🇱' },
+  { code: 'sv',    label: 'Svenska',      flag: '🇸🇪' },
+  { code: 'id',    label: 'Indonesia',    flag: '🇮🇩' },
+  { code: 'ms',    label: 'Melayu',       flag: '🇲🇾' },
+  { code: 'th',    label: 'ภาษาไทย',     flag: '🇹🇭' },
+  { code: 'vi',    label: 'Tiếng Việt',  flag: '🇻🇳' },
+  { code: 'uk',    label: 'Українська',  flag: '🇺🇦' },
+  { code: 'ro',    label: 'Română',       flag: '🇷🇴' },
+  { code: 'cs',    label: 'Čeština',      flag: '🇨🇿' },
+  { code: 'hu',    label: 'Magyar',       flag: '🇭🇺' },
 ];
 
-// Map browser navigator.language -> our lang code
+// CSS injected into <head> to suppress the native Google Translate UI
+const TRANSLATE_HIDE_CSS = `
+  .goog-te-banner-frame,
+  .goog-te-balloon-frame,
+  #goog-gt-tt,
+  .goog-tooltip,
+  .goog-tooltip:hover,
+  .goog-te-menu-value:hover,
+  .VIpgJd-ZVi9od-aZ2wEe-wOHMyf { display: none !important; }
+  body { top: 0 !important; position: static !important; }
+  .goog-logo-link,
+  .goog-te-gadget span,
+  .goog-te-gadget > a { display: none !important; }
+  #google_translate_element_hidden { display: none !important; }
+  .goog-te-combo {
+    opacity: 0;
+    position: absolute;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+  }
+  font { vertical-align: inherit !important; background-color: transparent !important; }
+`;
+
+// -----------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------
 function detectBrowserLang(): string {
   if (typeof navigator === 'undefined') return 'en';
-  const lang = navigator.language || (navigator as any).userLanguage || 'en';
-  const base = lang.split('-')[0].toLowerCase();
+  const lang = (navigator.language || (navigator as any).userLanguage || 'en') as string;
   const full = lang.toLowerCase();
-
-  // Chinese variants
   if (full === 'zh-tw' || full === 'zh-hk') return 'zh-TW';
   if (full.startsWith('zh')) return 'zh-CN';
-
-  const match = SUPPORTED_LANGUAGES.find(l => l.code.toLowerCase() === base || l.code.toLowerCase().startsWith(base));
+  const base = full.split('-')[0];
+  const match = SUPPORTED_LANGUAGES.find(
+    (l) => l.code.toLowerCase() === base || l.code.toLowerCase().startsWith(base),
+  );
   return match?.code || 'en';
 }
 
-// Get a readable cookie value
-function getCookieLang(): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(/(?:^|;\s*)googtrans=\/en\/([^;]+)/);
-  if (match) return decodeURIComponent(match[1]);
-  const stored = localStorage.getItem('goldcrest_lang');
-  return stored;
+function getSavedLang(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    // Check googtrans cookie first
+    const cookieMatch = document.cookie.match(/(?:^|;\s*)googtrans=\/en\/([^;]+)/);
+    if (cookieMatch) return decodeURIComponent(cookieMatch[1]);
+    // Fall back to localStorage
+    return localStorage.getItem('goldcrest_lang');
+  } catch {
+    return null;
+  }
 }
 
-// Extend window type for Google Translate
+function setGoogtransCookie(langCode: string) {
+  const val = langCode === 'en' ? '/en/en' : `/en/${langCode}`;
+  const domain = window.location.hostname;
+  document.cookie = `googtrans=${val}; path=/; domain=${domain}`;
+  document.cookie = `googtrans=${val}; path=/`;
+}
+
+// Extend Window for Google Translate
 declare global {
   interface Window {
     googleTranslateElementInit?: () => void;
@@ -68,10 +104,10 @@ declare global {
           new (config: {
             pageLanguage: string;
             includedLanguages?: string;
-            layout?: any;
+            layout?: number;
             autoDisplay?: boolean;
             multilanguagePage?: boolean;
-          }, elementId: string): any;
+          }, elementId: string): void;
           InlineLayout: { SIMPLE: number; HORIZONTAL: number; VERTICAL: number };
         };
       };
@@ -86,165 +122,174 @@ export function GoogleTranslate() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('en');
   const [gtReady, setGtReady] = useState(false);
-  const [gtFailed, setGtFailed] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const initAttempted = useRef(false);
 
-  // -----------------------------------------------------------------
-  // Step 1: Detect initial language (cookie > browser locale)
-  // -----------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // 1. Inject hide-CSS once into <head> (App Router compatible)
+  // ---------------------------------------------------------------
   useEffect(() => {
-    const saved = getCookieLang();
-    const detected = detectBrowserLang();
-    const initial = saved || detected;
-    setCurrentLang(initial);
+    const STYLE_ID = 'gt-hide-styles';
+    if (!document.getElementById(STYLE_ID)) {
+      const style = document.createElement('style');
+      style.id = STYLE_ID;
+      style.textContent = TRANSLATE_HIDE_CSS;
+      document.head.appendChild(style);
+    }
   }, []);
 
-  // -----------------------------------------------------------------
-  // Step 2: Load Google Translate script once (idempotent)
-  // -----------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // 2. Detect initial language from cookie / localStorage / browser
+  // ---------------------------------------------------------------
   useEffect(() => {
-    const SCRIPT_ID = 'google-translate-script-v2';
+    const saved = getSavedLang();
+    const detected = detectBrowserLang();
+    setCurrentLang(saved || detected);
+  }, []);
 
-    // Define the init callback before script loads
-    window.googleTranslateElementInit = () => {
-      try {
-        if (window.google?.translate?.TranslateElement) {
-          new window.google.translate.TranslateElement(
-            {
-              pageLanguage: 'en',
-              // Comma-separated list of all our supported languages
-              includedLanguages: SUPPORTED_LANGUAGES.map(l => l.code).join(','),
-              layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-              autoDisplay: false,    // We handle auto-display ourselves
-              multilanguagePage: false,
-            },
-            'google_translate_element_hidden'
-          );
-          setGtReady(true);
-          setGtFailed(false);
-        }
-      } catch (e) {
-        console.warn('[Translate] Widget init failed, using fallback', e);
-        setGtFailed(true);
+  // ---------------------------------------------------------------
+  // 3. Load Google Translate script (idempotent)
+  // ---------------------------------------------------------------
+  const initWidget = useCallback(() => {
+    if (initAttempted.current) return;
+    initAttempted.current = true;
+
+    try {
+      if (window.google?.translate?.TranslateElement) {
+        new window.google.translate.TranslateElement(
+          {
+            pageLanguage: 'en',
+            includedLanguages: SUPPORTED_LANGUAGES.map((l) => l.code).join(','),
+            layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false,
+            multilanguagePage: false,
+          },
+          'google_translate_element_hidden',
+        );
+        setGtReady(true);
       }
+    } catch (e) {
+      console.warn('[Translate] Widget init error:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    const SCRIPT_ID = 'google-translate-script-v3';
+
+    // Register global callback before script loads
+    window.googleTranslateElementInit = () => {
+      initWidget();
     };
 
-    // Don't re-add the script if already added
     if (!document.getElementById(SCRIPT_ID)) {
       const script = document.createElement('script');
       script.id = SCRIPT_ID;
-      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      script.src =
+        'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
       script.async = true;
       script.defer = true;
       script.onerror = () => {
-        console.warn('[Translate] Google script blocked/failed, using fallback mode');
-        setGtFailed(true);
+        console.warn('[Translate] Google Translate script failed to load.');
       };
       document.head.appendChild(script);
-    } else {
-      // Script already in DOM; if widget is already available, mark ready
-      if (window.google?.translate?.TranslateElement) {
-        setGtReady(true);
-      }
+    } else if (window.google?.translate?.TranslateElement) {
+      // Script already loaded; just init the widget
+      initWidget();
     }
+  }, [initWidget]);
 
-    return () => {
-      // Do NOT remove the script on unmount – Google Translate is global
-    };
-  }, []);
-
-  // -----------------------------------------------------------------
-  // Step 3: Auto-translate on load if non-English region detected
-  // -----------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // 4. Auto-translate once the widget is ready
+  // ---------------------------------------------------------------
   useEffect(() => {
     if (!gtReady) return;
-    const saved = getCookieLang();
+    const saved = getSavedLang();
     const detected = detectBrowserLang();
-    const targetLang = saved || detected;
-
-    if (targetLang && targetLang !== 'en') {
-      triggerGoogleTranslate(targetLang);
+    const target = saved || detected;
+    if (target && target !== 'en') {
+      triggerTranslate(target);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gtReady]);
 
-  // -----------------------------------------------------------------
-  // Close dropdown on outside click
-  // -----------------------------------------------------------------
+  // ---------------------------------------------------------------
+  // 5. Close dropdown on outside click
+  // ---------------------------------------------------------------
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // -----------------------------------------------------------------
-  // Core translate function – writes the googtrans cookie & fires change
-  // -----------------------------------------------------------------
-  function triggerGoogleTranslate(langCode: string) {
-    // Set cookie that Google Translate reads
-    const cookieVal = langCode === 'en' ? '/en/en' : `/en/${langCode}`;
-    document.cookie = `googtrans=${cookieVal}; path=/; domain=${window.location.hostname}`;
-    document.cookie = `googtrans=${cookieVal}; path=/`;
+  // ---------------------------------------------------------------
+  // Core translation trigger – sets cookie & fires widget change
+  // ---------------------------------------------------------------
+  function triggerTranslate(langCode: string) {
+    setGoogtransCookie(langCode);
+    try {
+      localStorage.setItem('goldcrest_lang', langCode);
+    } catch {}
 
-    // Persist manual preference
-    try { localStorage.setItem('goldcrest_lang', langCode); } catch {}
-
-    // Try clicking the hidden Google widget select via DOM manipulation
-    const tryViaWidget = () => {
+    // Try to find the hidden Google select and change it
+    const tryWidget = (): boolean => {
       const select = document.querySelector<HTMLSelectElement>('.goog-te-combo');
       if (select) {
         select.value = langCode;
-        select.dispatchEvent(new Event('change'));
+        select.dispatchEvent(new Event('change', { bubbles: true }));
         return true;
       }
       return false;
     };
 
-    // Try immediately, then retry after a delay if widget isn't ready yet
-    if (!tryViaWidget()) {
-      setTimeout(tryViaWidget, 600);
-      setTimeout(tryViaWidget, 1500);
+    if (!tryWidget()) {
+      // Widget may not be injected yet; retry a few times
+      setTimeout(tryWidget, 400);
+      setTimeout(tryWidget, 1000);
+      setTimeout(tryWidget, 2000);
     }
 
     setCurrentLang(langCode);
     setIsOpen(false);
   }
 
-  // -----------------------------------------------------------------
+  // ---------------------------------------------------------------
   // Handle manual language selection
-  // -----------------------------------------------------------------
+  // ---------------------------------------------------------------
   function handleSelectLang(code: string) {
     if (code === 'en') {
-      // Restore original English – reload is the most reliable way
-      document.cookie = 'googtrans=/en/en; path=/; domain=' + window.location.hostname;
-      document.cookie = 'googtrans=/en/en; path=/';
-      try { localStorage.setItem('goldcrest_lang', 'en'); } catch {}
+      // Resetting to English: clear cookies & reload (most reliable)
+      setGoogtransCookie('en');
+      try {
+        localStorage.setItem('goldcrest_lang', 'en');
+      } catch {}
       setCurrentLang('en');
       setIsOpen(false);
       window.location.reload();
       return;
     }
-    triggerGoogleTranslate(code);
+    triggerTranslate(code);
   }
 
-  const currentLangObj = SUPPORTED_LANGUAGES.find(l => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
+  const currentLangObj =
+    SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
   return (
     <>
-      {/* Hidden Google Translate widget anchor (needed for DOM injection) */}
+      {/* Hidden widget anchor required by Google Translate SDK */}
       <div
         id="google_translate_element_hidden"
         aria-hidden="true"
         style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}
       />
 
-      {/* Our custom styled language picker */}
+      {/* Custom styled language picker */}
       <div ref={dropdownRef} className="relative" id="language-switcher">
         <button
-          onClick={() => setIsOpen(prev => !prev)}
+          onClick={() => setIsOpen((prev) => !prev)}
           className="flex items-center gap-1.5 px-2.5 py-1.5 glass rounded-xl border border-white/10 hover:border-blue-500/30 hover:bg-white/[0.06] transition-all duration-200 group"
           title="Select Language"
           aria-label="Change language"
@@ -262,11 +307,11 @@ export function GoogleTranslate() {
             size={11}
             className={`text-slate-500 group-hover:text-slate-300 transition-all duration-200 flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
           />
-          {!gtReady && !gtFailed && (
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" title="Translator loading..." />
-          )}
-          {gtFailed && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" title="Fallback mode active" />
+          {!gtReady && (
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0"
+              title="Translator loading…"
+            />
           )}
         </button>
 
@@ -307,46 +352,6 @@ export function GoogleTranslate() {
           </div>
         )}
       </div>
-
-      {/* Global styles to hide Google Translate default banner/bar and fix body offset */}
-      <style jsx global>{`
-        /* Kill the top bar that pushes content down */
-        .goog-te-banner-frame,
-        .goog-te-balloon-frame,
-        #goog-gt-tt,
-        .goog-te-balloon-frame,
-        .goog-tooltip,
-        .goog-tooltip:hover {
-          display: none !important;
-        }
-        body {
-          top: 0 !important;
-          position: static !important;
-        }
-        /* Hide the "Translated by Google" attribution */
-        .goog-logo-link,
-        .goog-te-gadget span,
-        .goog-te-gadget > a {
-          display: none !important;
-        }
-        /* Hide the hidden widget container */
-        #google_translate_element_hidden {
-          display: none !important;
-        }
-        /* Make the combo select invisible (we use our own UI) */
-        .goog-te-combo {
-          opacity: 0;
-          position: absolute;
-          pointer-events: none;
-          width: 0;
-          height: 0;
-        }
-        /* Smooth all translated text reflow */
-        font {
-          vertical-align: inherit !important;
-          background-color: transparent !important;
-        }
-      `}</style>
     </>
   );
 }

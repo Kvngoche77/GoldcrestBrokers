@@ -3,15 +3,19 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(request: Request) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json({ error: 'Supabase credentials missing' }, { status: 500 });
+  }
+
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
   // Verify this is an admin request - check for a secret token
   const authHeader = request.headers.get('authorization');
-  const expectedToken = process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(-20);
+  const expectedToken = supabaseServiceKey.slice(-20);
   
   if (authHeader !== `Bearer ${expectedToken}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

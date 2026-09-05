@@ -99,7 +99,8 @@ export default function CopyTradingPage() {
 
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      const { error: subError } = await supabase
+      // Try inserting with extended fields first
+      let { error: subError } = await supabase
         .from('copy_trading_subscriptions')
         .insert({
           user_id: profile.id,
@@ -110,6 +111,20 @@ export default function CopyTradingPage() {
           days_credited: 0,
           daily_roi_percent: 5.00,
         });
+
+      // Fallback if daily_roi_percent or other extended columns are not yet in remote DB schema
+      if (subError && (subError.message?.includes('column') || subError.message?.includes('schema cache'))) {
+        const fallback = await supabase
+          .from('copy_trading_subscriptions')
+          .insert({
+            user_id: profile.id,
+            trader_id: trader.id,
+            amount: trader.subscription_rate,
+            status: 'active',
+          });
+        subError = fallback.error;
+      }
+
       if (subError) throw subError;
 
       // Deduct balance
@@ -152,9 +167,19 @@ export default function CopyTradingPage() {
   const syncDailyROIMutation = useMutation({
     mutationFn: async () => {
       if (!profile?.id) throw new Error('Not logged in');
-      const { data, error } = await supabase.rpc('process_copy_trading_daily_5pct_returns', {
+      
+      let { data, error } = await supabase.rpc('process_copy_trading_daily_5pct_returns', {
         target_user_id: profile.id,
       });
+
+      // Fallback to process_user_copy_trades if process_copy_trading_daily_5pct_returns isn't in DB yet
+      if (error && (error.message?.includes('function') || error.code === 'PGRST202')) {
+        const fallback = await supabase.rpc('process_user_copy_trades', {
+          target_user_id: profile.id,
+        });
+        if (!fallback.error) return fallback.data;
+      }
+
       if (error) throw error;
       return data;
     },
