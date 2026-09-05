@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://translate.googleapis.com",
       "img-src 'self' blob: data: https://*.supabase.co https://*.tradingview.com https://*.google.com https://www.gstatic.com https://translate.google.com https://translate.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com https://www.gstatic.com",
-      "connect-src 'self' https://*.supabase.co https://*.tradingview.com https://translate.googleapis.com https://translate-pa.googleapis.com https://*.google.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tradingview.com https://translate.googleapis.com https://translate-pa.googleapis.com https://*.google.com",
       "frame-src 'self' https://*.tradingview.com https://*.google.com https://translate.google.com",
     ].join('; '),
   };

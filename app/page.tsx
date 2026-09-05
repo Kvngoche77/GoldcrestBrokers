@@ -25,7 +25,7 @@ const STATIC_PLANS: InvestmentPlan[] = [
     id: 'starter-premier',
     name: 'Starter Premier Plan',
     description: 'Ideal for beginners starting their investment journey',
-    min_amount: 500,
+    min_amount: 50,
     max_amount: 1999,
     daily_roi_percent: 2.0,
     duration_days: 20,

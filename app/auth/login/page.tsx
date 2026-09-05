@@ -39,14 +39,22 @@ export default function LoginPage() {
         password: data.password,
       });
       if (error) {
-        toast.error(error.message === 'Invalid login credentials' ? 'Invalid email or password' : error.message);
+        if (error.message.includes('fetch') || error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+          toast.error('Unable to connect to backend server. Please verify database connectivity.');
+        } else {
+          toast.error(error.message === 'Invalid login credentials' ? 'Invalid email or password' : error.message);
+        }
         return;
       }
       toast.success('Welcome back!');
       router.push(redirectTo);
       router.refresh();
-    } catch {
-      toast.error('An unexpected error occurred');
+    } catch (err: any) {
+      if (err?.message?.includes('fetch') || err?.message?.includes('NetworkError')) {
+        toast.error('Unable to connect to backend server. Please verify database connectivity.');
+      } else {
+        toast.error('An unexpected error occurred during login');
+      }
     } finally {
       setIsLoading(false);
     }
