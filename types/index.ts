@@ -1,3 +1,15 @@
+export type EmailPreferences = {
+  deposit_initiated: boolean;
+  withdrawal_initiated: boolean;
+  withdrawal_approved: boolean;
+  withdrawal_rejected: boolean;
+  investment_created: boolean;
+  investment_completed: boolean;
+  kyc_approved: boolean;
+  daily_profit: boolean;
+  marketing: boolean;
+};
+
 export type Profile = {
   id: string;
   username: string | null;
@@ -26,6 +38,7 @@ export type Profile = {
   email?: string;
   email_verified?: boolean;
   email_verification_sent_at?: string;
+  email_preferences?: EmailPreferences;
 };
 
 export type InvestmentPlan = {
@@ -234,4 +247,41 @@ export type AdminEmail = {
   status: 'sent' | 'delivered' | 'failed';
   created_at: string;
   profile?: Profile;
+};
+
+export type SpotTrade = {
+  id: string;
+  user_id: string;
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  quantity: number;
+  entry_price: number;
+  exit_price?: number | null;
+  status: 'open' | 'closed' | 'cancelled';
+  pnl?: number | null;
+  pnl_percent?: number | null;
+  leverage: number;
+  stop_loss?: number | null;
+  take_profit?: number | null;
+  closed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LoginAttempt = {
+  id: string;
+  email: string;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  success: boolean;
+  created_at: string;
+};
+
+export type SupportTicketMessage = {
+  id: string;
+  ticket_id: string;
+  sender_id: string;
+  message: string;
+  is_admin_reply: boolean;
+  created_at: string;
 };

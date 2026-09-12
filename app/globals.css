@@ -117,16 +117,48 @@
 }
 .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
 
-/* Shimmer loading */
+/* =============================================
+   SKELETON LOADERS (upgraded)
+   ============================================= */
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
 }
 .shimmer {
-  background: linear-gradient(90deg, hsl(222,47%,12%) 25%, hsl(222,47%,18%) 50%, hsl(222,47%,12%) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  background: linear-gradient(
+    90deg,
+    hsl(222, 47%, 10%) 0%,
+    hsl(222, 47%, 16%) 40%,
+    hsl(222, 47%, 20%) 50%,
+    hsl(222, 47%, 16%) 60%,
+    hsl(222, 47%, 10%) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
   border-radius: 6px;
+}
+
+/* Skeleton variants */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(222, 47%, 10%) 0%,
+    hsl(222, 47%, 16%) 40%,
+    hsl(222, 47%, 20%) 50%,
+    hsl(222, 47%, 16%) 60%,
+    hsl(222, 47%, 10%) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 8px;
+}
+.skeleton-rounded { border-radius: 50%; }
+.skeleton-text { height: 0.85em; margin-bottom: 0.4em; }
+.skeleton-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 /* Card hover */
@@ -145,6 +177,42 @@
 .badge-danger  { @apply bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-medium px-2.5 py-1 rounded-full; }
 .badge-info    { @apply bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-medium px-2.5 py-1 rounded-full; }
 .badge-grey    { @apply bg-slate-500/10 text-slate-400 border border-slate-500/20 text-xs font-medium px-2.5 py-1 rounded-full; }
+
+/* =============================================
+   MICRO-ANIMATIONS
+   ============================================= */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes spinSlow {
+  to { transform: rotate(360deg); }
+}
+
+.animate-slide-up    { animation: slideUp 0.4s ease forwards; }
+.animate-slide-down  { animation: slideDown 0.3s ease forwards; }
+.animate-fade-in     { animation: fadeIn 0.4s ease forwards; }
+.animate-scale-in    { animation: scaleIn 0.3s ease forwards; }
+.animate-spin-slow   { animation: spinSlow 3s linear infinite; }
+
+/* Stagger helpers (use with nth-child or delay-N classes) */
+.delay-75  { animation-delay: 75ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-225 { animation-delay: 225ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-375 { animation-delay: 375ms; }
 
 /* Google Translate Overrides */
 body { top: 0 !important; }
@@ -173,9 +241,7 @@ body { top: 0 !important; }
   cursor: pointer;
   height: 32px;
 }
-.goog-te-gadget .goog-te-combo:hover {
-  color: white;
-}
+.goog-te-gadget .goog-te-combo:hover { color: white; }
 .goog-logo-link { display: none !important; }
 
 /* Smooth scroll anchor offset (for sticky navbar) */
@@ -197,13 +263,24 @@ section[id] {
 }
 
 /* Premium card solid colors */
-.card-solid-blue  { background: linear-gradient(135deg, #1d4ed8, #1e40af); }
+.card-solid-blue    { background: linear-gradient(135deg, #1d4ed8, #1e40af); }
 .card-solid-emerald { background: linear-gradient(135deg, #059669, #065f46); }
-.card-solid-violet { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
-.card-solid-amber  { background: linear-gradient(135deg, #d97706, #92400e); }
-.card-solid-cyan   { background: linear-gradient(135deg, #0891b2, #164e63); }
-.card-solid-rose   { background: linear-gradient(135deg, #e11d48, #9f1239); }
+.card-solid-violet  { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+.card-solid-amber   { background: linear-gradient(135deg, #d97706, #92400e); }
+.card-solid-cyan    { background: linear-gradient(135deg, #0891b2, #164e63); }
+.card-solid-rose    { background: linear-gradient(135deg, #e11d48, #9f1239); }
 
 /* Text balance for headings */
 h1, h2, h3 { text-wrap: balance; }
 
+/* Focus ring - accessible */
+:focus-visible {
+  outline: 2px solid rgba(29, 110, 245, 0.6);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Sidebar nav transition */
+.nav-item-transition {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}

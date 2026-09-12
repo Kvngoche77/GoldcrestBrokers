@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -12,6 +12,39 @@ import { EmailVerificationBanner } from '@/components/sections/EmailVerification
 import type { Transaction, Investment, InvestmentPlan } from '@/types';
 import toast from 'react-hot-toast';
 
+// ─── Skeleton Components ───────────────────────────────────────────────────────
+function StatCardSkeleton() {
+  return (
+    <div className="glass rounded-2xl p-5 border border-white/[0.05]">
+      <div className="flex items-center justify-between mb-3">
+        <div className="skeleton h-3 w-24 rounded-md" />
+        <div className="skeleton w-9 h-9 rounded-xl" />
+      </div>
+      <div className="skeleton h-7 w-28 rounded-md mb-2" />
+      <div className="skeleton h-2.5 w-40 rounded-md" />
+    </div>
+  );
+}
+
+function TransactionSkeleton() {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-white/[0.04] last:border-0">
+      <div className="flex items-center gap-3">
+        <div className="skeleton w-8 h-8 rounded-xl flex-shrink-0" />
+        <div>
+          <div className="skeleton h-3.5 w-28 rounded-md mb-1.5" />
+          <div className="skeleton h-2.5 w-16 rounded-md" />
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="skeleton h-3.5 w-16 rounded-md mb-1.5 ml-auto" />
+        <div className="skeleton h-4 w-14 rounded-full ml-auto" />
+      </div>
+    </div>
+  );
+}
+
+// ─── Stat Card ─────────────────────────────────────────────────────────────────
 function StatCard({
   title, value, change, icon: Icon, color, href,
 }: {
@@ -37,7 +70,7 @@ function StatCard({
   return href ? <Link href={href}>{content}</Link> : content;
 }
 
-// Helper to calculate time elapsed
+// ─── Time helper ───────────────────────────────────────────────────────────────
 function timeAgo(dateStr: string): string {
   const secs = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (secs < 60) return `${secs}s ago`;
@@ -48,6 +81,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { user, profile, refreshProfile } = useAuth();
@@ -77,9 +111,7 @@ export default function DashboardPage() {
             `Daily profit credited! +$${Number(result.total_credited_amount).toFixed(2)} added to your balance.`,
             { duration: 5000 }
           );
-          // Refresh user profile details
           await refreshProfile();
-          // Invalidate React Query cache for investments and transactions to refresh UI lists
           queryClient.invalidateQueries({ queryKey: ['investments', profileId] });
           queryClient.invalidateQueries({ queryKey: ['transactions', profileId] });
         }
@@ -93,9 +125,9 @@ export default function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, [profile?.id, queryClient]);
+  }, [profile?.id, queryClient, refreshProfile]);
 
-  const { data: investments = [] } = useQuery({
+  const { data: investments = [], isLoading: investmentsLoading } = useQuery({
     queryKey: ['investments', profile?.id],
     queryFn: async (): Promise<(Investment & { plan: InvestmentPlan })[]> => {
       if (!profile?.id) return [];
@@ -109,9 +141,10 @@ export default function DashboardPage() {
     },
     enabled: !!profile?.id,
     refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 
-  const { data: transactions = [] } = useQuery({
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ['transactions', profile?.id],
     queryFn: async (): Promise<Transaction[]> => {
       if (!profile?.id) return [];
@@ -124,6 +157,7 @@ export default function DashboardPage() {
       return (data as Transaction[]) ?? [];
     },
     enabled: !!profile?.id,
+    refetchOnWindowFocus: true,
   });
 
   const { data: liveNews = [] } = useQuery({
@@ -141,34 +175,35 @@ export default function DashboardPage() {
       return [];
     },
     refetchInterval: 300000, // 5 mins
+    staleTime: 120000,
   });
 
   const activeInvestments = investments.filter((i) => i.status === 'active');
-  const totalInvested = investments.filter((i) => i.status !== 'cancelled').reduce((s, i) => s + i.amount, 0);
+  const profileLoading = !profile;
 
   const stats = [
     {
       title: 'Total Balance',
-      value: `$${Number(profile?.balance ?? 0).toFixed(2)}`,
+      value: profileLoading ? '—' : `$${Number(profile?.balance ?? 0).toFixed(2)}`,
       icon: Wallet,
       color: 'bg-blue-500/10 text-blue-400',
       href: '/dashboard/deposit',
     },
     {
       title: 'Total Deposited',
-      value: `$${Number(profile?.total_deposited ?? 0).toFixed(2)}`,
+      value: profileLoading ? '—' : `$${Number(profile?.total_deposited ?? 0).toFixed(2)}`,
       icon: ArrowDownLeft,
       color: 'bg-emerald-500/10 text-emerald-400',
     },
     {
       title: 'Total Profit',
-      value: `$${Number(profile?.total_profit ?? 0).toFixed(2)}`,
+      value: profileLoading ? '—' : `$${Number(profile?.total_profit ?? 0).toFixed(2)}`,
       icon: TrendingUp,
       color: 'bg-amber-500/10 text-amber-400',
     },
     {
       title: 'Referral Earnings',
-      value: `$${Number(profile?.referral_earnings ?? 0).toFixed(2)}`,
+      value: profileLoading ? '—' : `$${Number(profile?.referral_earnings ?? 0).toFixed(2)}`,
       icon: Users,
       color: 'bg-rose-500/10 text-rose-400',
       href: '/dashboard/referrals',
@@ -188,34 +223,47 @@ export default function DashboardPage() {
         <p className="text-slate-400 text-sm mt-1">Here&apos;s what&apos;s happening with your portfolio today.</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-          >
-            <StatCard {...stat} />
-          </motion.div>
-        ))}
+      {/* Stats — with skeleton while profile loads */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        {profileLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06 }}
+              >
+                <StatCardSkeleton />
+              </motion.div>
+            ))
+          : stats.map((stat, i) => (
+              <motion.div
+                key={stat.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }}
+              >
+                <StatCard {...stat} />
+              </motion.div>
+            ))}
       </div>
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {[
-          { href: '/dashboard/deposit', label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-400', bg: 'bg-emerald-500/10 hover:bg-emerald-500/20' },
-          { href: '/dashboard/trade', label: 'Spot', icon: LineChart, color: 'text-blue-400', bg: 'bg-blue-500/10 hover:bg-blue-500/20' },
-          { href: '/dashboard/trade/copy', label: 'Copy Trade', icon: Copy, color: 'text-indigo-400', bg: 'bg-indigo-500/10 hover:bg-indigo-500/20' },
-          { href: '/dashboard/withdraw', label: 'Withdraw', icon: ArrowUpRight, color: 'text-amber-400', bg: 'bg-amber-500/10 hover:bg-amber-500/20' },
-          { href: '/dashboard/referrals', label: 'Referrals', icon: Users, color: 'text-rose-400', bg: 'bg-rose-500/10 hover:bg-rose-500/20' },
-        ].map(({ href, label, icon: Icon, color, bg }) => (
-          <Link key={href} href={href} className={`flex flex-col items-center gap-2 p-4 rounded-2xl glass border border-white/[0.05] transition-all ${bg}`}>
-            <Icon size={22} className={color} />
-            <span className="text-xs font-medium text-slate-300">{label}</span>
-          </Link>
-        ))}
+      {/* Quick actions — horizontally scrollable on mobile */}
+      <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <div className="flex sm:grid sm:grid-cols-3 lg:grid-cols-5 gap-3 min-w-max sm:min-w-0">
+          {[
+            { href: '/dashboard/deposit', label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-400', bg: 'bg-emerald-500/10 hover:bg-emerald-500/20' },
+            { href: '/dashboard/trade', label: 'Spot', icon: LineChart, color: 'text-blue-400', bg: 'bg-blue-500/10 hover:bg-blue-500/20' },
+            { href: '/dashboard/trade/copy', label: 'Copy Trade', icon: Copy, color: 'text-indigo-400', bg: 'bg-indigo-500/10 hover:bg-indigo-500/20' },
+            { href: '/dashboard/withdraw', label: 'Withdraw', icon: ArrowUpRight, color: 'text-amber-400', bg: 'bg-amber-500/10 hover:bg-amber-500/20' },
+            { href: '/dashboard/referrals', label: 'Referrals', icon: Users, color: 'text-rose-400', bg: 'bg-rose-500/10 hover:bg-rose-500/20' },
+          ].map(({ href, label, icon: Icon, color, bg }) => (
+            <Link key={href} href={href} className={`flex flex-col items-center gap-2 p-4 rounded-2xl glass border border-white/[0.05] transition-all ${bg} min-w-[90px] sm:min-w-0`}>
+              <Icon size={22} className={color} />
+              <span className="text-xs font-medium text-slate-300">{label}</span>
+            </Link>
+          ))}
+        </div>
       </div>
 
       <motion.div
@@ -241,7 +289,25 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="p-4">
-            {activeInvestments.length === 0 ? (
+            {investmentsLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="p-4 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <div className="skeleton h-3.5 w-32 rounded-md mb-2" />
+                        <div className="skeleton h-2.5 w-24 rounded-md" />
+                      </div>
+                      <div className="text-right">
+                        <div className="skeleton h-3.5 w-16 rounded-md mb-2 ml-auto" />
+                        <div className="skeleton h-2.5 w-20 rounded-md ml-auto" />
+                      </div>
+                    </div>
+                    <div className="skeleton h-1.5 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : activeInvestments.length === 0 ? (
               <div className="text-center py-10">
                 <TrendingUp size={32} className="text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-400 text-sm">No active investments</p>
@@ -350,7 +416,11 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="p-4">
-            {transactions.length === 0 ? (
+            {transactionsLoading ? (
+              <div className="space-y-1">
+                {Array.from({ length: 4 }).map((_, i) => <TransactionSkeleton key={i} />)}
+              </div>
+            ) : transactions.length === 0 ? (
               <div className="text-center py-10">
                 <Wallet size={32} className="text-slate-600 mx-auto mb-3" />
                 <p className="text-slate-400 text-sm">No transactions yet</p>

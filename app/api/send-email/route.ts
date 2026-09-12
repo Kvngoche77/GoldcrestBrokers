@@ -366,6 +366,74 @@ export async function POST(req: NextRequest) {
         `;
         break;
 
+      case 'investment_completed':
+        subject = `Investment Plan Completed: +$${Number(amount).toFixed(2)} Profit Earned`;
+        html = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+            <div style="margin-bottom: 24px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+              <span style="font-size: 22px; font-weight: bold; color: #0f172a;">Goldcrest<span style="color: #2563eb;">Brokers</span></span>
+            </div>
+            <h1 style="color: #10b981; margin-bottom: 16px; font-size: 22px; font-weight: 700; text-align: center;">🎉 Investment Plan Completed!</h1>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">Hi ${finalName || 'Trader'},</p>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">Congratulations! Your investment plan has successfully completed its full term. Your profits have been credited to your account balance.</p>
+            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0;">
+              <h3 style="margin-top: 0; margin-bottom: 12px; color: #0f172a;">Completion Summary</h3>
+              <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Amount Invested:</td>
+                  <td style="padding: 6px 0; color: #0f172a; font-weight: 600; text-align: right;">$${Number(amount).toFixed(2)} ${currency || 'USD'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Total Profit Earned:</td>
+                  <td style="padding: 6px 0; color: #10b981; font-weight: 700; text-align: right;">+$${Number(amount).toFixed(2)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Status:</td>
+                  <td style="padding: 6px 0; color: #10b981; font-weight: 600; text-align: right;">Completed ✓</td>
+                </tr>
+              </table>
+            </div>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">Your funds are now available in your account. You can reinvest or withdraw at any time.</p>
+            <p style="margin: 30px 0; text-align: center;">
+              <a href="${origin || 'http://localhost:3000'}/dashboard/invest" style="background-color: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">Start a New Investment</a>
+            </p>
+            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;"/>
+            <p style="color: #64748b; font-size: 12px; text-align: center; margin-bottom: 0;">Goldcrest Brokers Team</p>
+          </div>
+        `;
+        break;
+
+      case 'kyc_approved':
+        subject = 'KYC Verification Approved — Account Fully Verified';
+        html = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+            <div style="margin-bottom: 24px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+              <span style="font-size: 22px; font-weight: bold; color: #0f172a;">Goldcrest<span style="color: #2563eb;">Brokers</span></span>
+            </div>
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div style="width: 64px; height: 64px; background-color: #ecfdf5; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 32px;">✅</div>
+            </div>
+            <h1 style="color: #10b981; margin-bottom: 16px; font-size: 22px; font-weight: 700; text-align: center;">Identity Verified!</h1>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">Hi ${finalName || 'Trader'},</p>
+            <p style="color: #334155; font-size: 16px; line-height: 1.5;">Great news! Your KYC (Know Your Customer) verification has been <strong style="color: #10b981;">approved</strong>. Your account is now fully verified and unlocked.</p>
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 24px 0;">
+              <p style="margin: 0 0 8px; font-weight: 600; color: #0f172a;">What this means for you:</p>
+              <ul style="margin: 0; padding-left: 20px; color: #334155; font-size: 14px; line-height: 1.8;">
+                <li>Higher withdrawal limits</li>
+                <li>Access to all premium investment tiers</li>
+                <li>Enhanced account security status</li>
+                <li>Priority customer support</li>
+              </ul>
+            </div>
+            <p style="margin: 30px 0; text-align: center;">
+              <a href="${origin || 'http://localhost:3000'}/dashboard" style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">Go to Dashboard</a>
+            </p>
+            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;"/>
+            <p style="color: #64748b; font-size: 12px; text-align: center; margin-bottom: 0;">Goldcrest Brokers Team</p>
+          </div>
+        `;
+        break;
+
       case 'followup_email':
         // Admin follow-up emails pass subject and html directly
         if (!custom_subject || !custom_html) {

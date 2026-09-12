@@ -238,7 +238,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-[#040c18] flex">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#060d1a] border-r border-white/[0.05] flex flex-col transform transition-transform lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#060d1a] border-r border-white/[0.05] flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-6 py-5 border-b border-white/[0.05]">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
@@ -250,16 +250,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {/* Nav — independently scrollable */}
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scrollbar-thin">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href;
+            // Exact match for the overview, prefix match for sub-sections
+            const isActive =
+              href === '/dashboard'
+                ? pathname === '/dashboard'
+                : pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setSidebarOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium nav-item-transition ${
                   isActive
                     ? 'bg-blue-600/15 text-blue-400 border border-blue-500/20'
                     : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
@@ -316,30 +320,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-[#040c18]/90 backdrop-blur-xl border-b border-white/[0.05] px-4 sm:px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-xl glass text-slate-400 hover:text-white transition-colors"
-          >
-            <Menu size={20} />
-          </button>
-          <div className="hidden sm:block">
-            <p className="text-sm text-slate-400">
-              Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
-              <span className="text-white font-medium">{displayUsername}</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl glass text-slate-400 hover:text-white transition-colors"
+            >
+              <Menu size={20} />
+            </button>
             <div className="hidden sm:block">
-              <GoogleTranslate />
+              <p className="text-sm text-slate-400">
+                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
+                <span className="text-white font-medium">{displayUsername}</span>
+              </p>
             </div>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <GoogleTranslate />
             <Link href="/dashboard/notifications" className="relative p-2 rounded-xl glass text-slate-400 hover:text-white transition-colors">
               <Bell size={18} />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 border-2 border-[#040c18] rounded-full box-content" />
               )}
             </Link>
-            <Link href="/dashboard/deposit" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition-all">
+            <Link href="/dashboard/deposit" className="hidden sm:block px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition-all">
               + Deposit
+            </Link>
+            <Link href="/dashboard/deposit" className="sm:hidden p-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all">
+              <ArrowDownToLine size={16} />
             </Link>
           </div>
         </header>

@@ -11,8 +11,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
-            retry: 1,
+            staleTime: 60 * 1000,       // 1 minute — data stays fresh
+            gcTime: 5 * 60 * 1000,      // 5 minutes — keep unused cache
+            retry: 1,                   // one retry on error
+            refetchOnWindowFocus: true, // refresh when tab regains focus
+            refetchOnReconnect: true,   // refresh when network reconnects
+          },
+          mutations: {
+            retry: 0, // never retry mutations (avoid duplicate DB writes)
           },
         },
       })
@@ -36,9 +42,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
             },
             success: {
               iconTheme: { primary: '#10d982', secondary: '#fff' },
+              duration: 4000,
             },
             error: {
               iconTheme: { primary: '#ef4444', secondary: '#fff' },
+              duration: 5000, // errors stay longer
+            },
+            loading: {
+              iconTheme: { primary: '#3b82f6', secondary: '#fff' },
             },
           }}
         />

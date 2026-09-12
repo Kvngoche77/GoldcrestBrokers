@@ -131,13 +131,19 @@ export default function HomePage() {
   const [plans, setPlans] = useState<InvestmentPlan[]>([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
+    // Dismiss loader as soon as plans are ready OR after max 2.5s fallback
+    const maxTimer = setTimeout(() => setLoading(false), 2500);
 
-    fetchPlans().then(setPlans);
+    fetchPlans().then((data) => {
+      setPlans(data);
+      // Small grace delay so the animation looks polished
+      setTimeout(() => {
+        setLoading(false);
+        clearTimeout(maxTimer);
+      }, 400);
+    });
 
-    return () => clearTimeout(timer);
+    return () => clearTimeout(maxTimer);
   }, []);
 
   return (
