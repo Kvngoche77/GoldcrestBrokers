@@ -46,39 +46,87 @@ export const DEFAULT_MARKETS: Market[] = [
   { symbol: 'MATICUSDT', baseAsset: 'MATIC', quoteAsset: 'USDT', price: 0.85, change24h: 4.10, high24h: 0.90, low24h: 0.80, volume24h: 8000000 },
 ];
 
-function generateMockOrderBook(price: number): OrderBook {
-  const asks: OrderBookEntry[] = [];
-  const bids: OrderBookEntry[] = [];
-  for (let i = 0; i < 15; i++) {
-    const askPrice = price * (1 + (i + 1) * 0.0005);
-    const askAmount = Math.random() * 2 + 0.01;
-    asks.push({ price: parseFloat(askPrice.toFixed(2)), amount: parseFloat(askAmount.toFixed(4)), total: parseFloat((askPrice * askAmount).toFixed(2)) });
-  }
-  for (let i = 0; i < 15; i++) {
-    const bidPrice = price * (1 - (i + 1) * 0.0005);
-    const bidAmount = Math.random() * 2 + 0.01;
-    bids.push({ price: parseFloat(bidPrice.toFixed(2)), amount: parseFloat(bidAmount.toFixed(4)), total: parseFloat((bidPrice * bidAmount).toFixed(2)) });
-  }
-  return { asks, bids };
-}
+// ── WebSocket manager (lives outside React, shared globally) ─────────────────
+// Manages a single combined Binance stream for ticker + depth + trades
+// Format: wss://stream.binance.com:9443/stream?streams=<a>/<b>/<c>
+class BinanceStreamManager {
+  private ws: WebSocket | null = null;
+  private symbol: string = '';
+  private callbacks: {
+    onTicker?: (ticker: any) => void;
+    onDepth?: (depth: any) => void;
+    onTrade?: (trade: any) => void;
+  } = {};
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private attempts = 0;
+  private closed = false;
 
-function generateMockTrades(price: number): Trade[] {
-  return Array.from({ length: 20 }, (_, i) => {
-    const side = Math.random() > 0.5 ? 'buy' : 'sell';
-    const tradePrice = price * (1 + (Math.random() - 0.5) * 0.002);
-    const amount = Math.random() * 1.5 + 0.001;
-    const now = new Date();
-    now.setSeconds(now.getSeconds() - i * 3);
-    return {
-      id: `mock-${i}`,
-      price: parseFloat(tradePrice.toFixed(2)),
-      amount: parseFloat(amount.toFixed(4)),
-      time: now.toTimeString().slice(0, 8),
-      side,
+  connect(symbol: string, callbacks: typeof this.callbacks) {
+    this.closed = false;
+    this.symbol = symbol.toLowerCase();
+    this.callbacks = callbacks;
+    this.attempts = 0;
+    this._open();
+  }
+
+  disconnect() {
+    this.closed = true;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.ws) {
+      this.ws.onclose = null;
+      this.ws.close();
+      this.ws = null;
+    }
+  }
+
+  private _open() {
+    if (this.closed) return;
+    // Combined stream: mini-ticker (price/change) + depth20 (order book) + aggTrade (trades)
+    const streams = [
+      `${this.symbol}@miniTicker`,
+      `${this.symbol}@depth20@100ms`,
+      `${this.symbol}@aggTrade`,
+    ].join('/');
+
+    const url = `wss://stream.binance.com:9443/stream?streams=${streams}`;
+    try {
+      this.ws = new WebSocket(url);
+    } catch {
+      this._scheduleReconnect();
+      return;
+    }
+
+    this.ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        const stream: string = msg.stream || '';
+        const data = msg.data;
+
+        if (stream.includes('miniTicker') && this.callbacks.onTicker) {
+          this.callbacks.onTicker(data);
+        } else if (stream.includes('depth') && this.callbacks.onDepth) {
+          this.callbacks.onDepth(data);
+        } else if (stream.includes('aggTrade') && this.callbacks.onTrade) {
+          this.callbacks.onTrade(data);
+        }
+      } catch { /* ignore */ }
     };
-  });
+
+    this.ws.onopen = () => { this.attempts = 0; };
+    this.ws.onerror = () => {};
+    this.ws.onclose = () => { if (!this.closed) this._scheduleReconnect(); };
+  }
+
+  private _scheduleReconnect() {
+    const delay = Math.min(1000 * Math.pow(2, this.attempts), 30000);
+    this.attempts += 1;
+    this.reconnectTimer = setTimeout(() => this._open(), delay);
+  }
 }
 
+const streamManager = new BinanceStreamManager();
+
+// ── Zustand store ────────────────────────────────────────────────────────────
 interface TradeState {
   selectedMarket: Market;
   markets: Market[];
@@ -99,6 +147,29 @@ interface TradeState {
   toggleFavorite: (symbol: string) => void;
   updateMarketData: () => Promise<void>;
   updateAllMarketPrices: () => Promise<void>;
+  connectLiveStream: () => void;
+  disconnectLiveStream: () => void;
+}
+
+// Safe order book builder
+function parseDepth(data: any, currentPrice: number): OrderBook {
+  try {
+    const asks: OrderBookEntry[] = (data.asks || []).slice(0, 15).map((a: string[]) => ({
+      price: parseFloat(a[0]),
+      amount: parseFloat(a[1]),
+      total: parseFloat(a[0]) * parseFloat(a[1]),
+    })).filter((e: OrderBookEntry) => e.amount > 0);
+
+    const bids: OrderBookEntry[] = (data.bids || []).slice(0, 15).map((b: string[]) => ({
+      price: parseFloat(b[0]),
+      amount: parseFloat(b[1]),
+      total: parseFloat(b[0]) * parseFloat(b[1]),
+    })).filter((e: OrderBookEntry) => e.amount > 0);
+
+    return { asks, bids };
+  } catch {
+    return { asks: [], bids: [] };
+  }
 }
 
 export const useTradeStore = create<TradeState>()(
@@ -106,8 +177,8 @@ export const useTradeStore = create<TradeState>()(
     (set, get) => ({
       selectedMarket: DEFAULT_MARKETS[0],
       markets: DEFAULT_MARKETS,
-      orderBook: generateMockOrderBook(DEFAULT_MARKETS[0].price),
-      recentTrades: generateMockTrades(DEFAULT_MARKETS[0].price),
+      orderBook: { asks: [], bids: [] },
+      recentTrades: [],
       orderPrice: DEFAULT_MARKETS[0].price.toString(),
       orderAmount: '',
       chartInterval: '1h',
@@ -121,17 +192,16 @@ export const useTradeStore = create<TradeState>()(
           orderPrice: market.price.toString(),
           orderAmount: '',
           isLoadingMarket: true,
+          orderBook: { asks: [], bids: [] },
+          recentTrades: [],
         });
-        // Trigger market data update for the new symbol
-        get().updateMarketData();
+        // Reconnect stream for new symbol
+        get().connectLiveStream();
       },
 
       setOrderPrice: (price) => set({ orderPrice: price }),
       setOrderAmount: (amount) => set({ orderAmount: amount }),
-
-      setChartInterval: (interval) => {
-        set({ chartInterval: interval });
-      },
+      setChartInterval: (interval) => set({ chartInterval: interval }),
 
       toggleFavorite: (symbol) => {
         const { favoriteSymbols } = get();
@@ -143,12 +213,72 @@ export const useTradeStore = create<TradeState>()(
         });
       },
 
+      // ── WebSocket live stream ────────────────────────────────────────────
+      connectLiveStream: () => {
+        const { selectedMarket } = get();
+
+        streamManager.connect(selectedMarket.symbol, {
+          // miniTicker: real-time price, 24h change, high, low, vol
+          onTicker: (data: any) => {
+            const price = parseFloat(data.c);
+            const change24h = parseFloat(data.P);
+            const high24h = parseFloat(data.h);
+            const low24h = parseFloat(data.l);
+            const volume24h = parseFloat(data.v);
+
+            set((state) => ({
+              selectedMarket: {
+                ...state.selectedMarket,
+                price,
+                change24h,
+                high24h,
+                low24h,
+                volume24h,
+              },
+              orderPrice: state.orderAmount === '' ? price.toFixed(2) : state.orderPrice,
+              lastUpdated: Date.now(),
+              isLoadingMarket: false,
+              // Update in the markets list too
+              markets: state.markets.map((m) =>
+                m.symbol === state.selectedMarket.symbol
+                  ? { ...m, price, change24h, high24h, low24h, volume24h }
+                  : m
+              ),
+            }));
+          },
+
+          // depth20: full order book snapshot every 100ms
+          onDepth: (data: any) => {
+            const { selectedMarket } = get();
+            set({ orderBook: parseDepth(data, selectedMarket.price) });
+          },
+
+          // aggTrade: every single trade execution
+          onTrade: (data: any) => {
+            const newTrade: Trade = {
+              id: data.a.toString(),
+              price: parseFloat(data.p),
+              amount: parseFloat(data.q),
+              time: new Date(data.T).toTimeString().slice(0, 8),
+              side: data.m ? 'sell' : 'buy', // m=true means buyer is maker → taker is seller
+            };
+            set((state) => ({
+              recentTrades: [newTrade, ...state.recentTrades.slice(0, 49)],
+            }));
+          },
+        });
+      },
+
+      disconnectLiveStream: () => {
+        streamManager.disconnect();
+      },
+
+      // ── REST fallback (used on first load + all-markets ticker update) ───
       updateMarketData: async () => {
         const { selectedMarket } = get();
         const symbol = selectedMarket.symbol;
 
         try {
-          // Use our server-side proxy to avoid CORS
           const [tickerRes, depthRes, tradesRes] = await Promise.all([
             fetch(`/api/trade/ticker?symbol=${symbol}`),
             fetch(`/api/trade/depth?symbol=${symbol}&limit=20`),
@@ -164,36 +294,24 @@ export const useTradeStore = create<TradeState>()(
           const updates: Partial<TradeState> = { isLoadingMarket: false, lastUpdated: Date.now() };
 
           if (ticker && !ticker.error) {
+            const price = parseFloat(ticker.lastPrice);
             updates.selectedMarket = {
               ...selectedMarket,
-              price: parseFloat(ticker.lastPrice),
+              price,
               change24h: parseFloat(ticker.priceChangePercent),
               high24h: parseFloat(ticker.highPrice),
               low24h: parseFloat(ticker.lowPrice),
               volume24h: parseFloat(ticker.volume),
             };
-            updates.orderPrice = parseFloat(ticker.lastPrice).toString();
-            // Also update this market in the markets list
             updates.markets = get().markets.map((m) =>
               m.symbol === symbol
-                ? { ...m, price: parseFloat(ticker.lastPrice), change24h: parseFloat(ticker.priceChangePercent) }
+                ? { ...m, price, change24h: parseFloat(ticker.priceChangePercent) }
                 : m
             );
           }
 
           if (depth && depth.asks && depth.bids) {
-            updates.orderBook = {
-              asks: depth.asks.slice(0, 15).map((a: string[]) => ({
-                price: parseFloat(a[0]),
-                amount: parseFloat(a[1]),
-                total: parseFloat(a[0]) * parseFloat(a[1]),
-              })),
-              bids: depth.bids.slice(0, 15).map((b: string[]) => ({
-                price: parseFloat(b[0]),
-                amount: parseFloat(b[1]),
-                total: parseFloat(b[0]) * parseFloat(b[1]),
-              })),
-            };
+            updates.orderBook = parseDepth(depth, selectedMarket.price);
           }
 
           if (Array.isArray(trades) && trades.length > 0) {
@@ -209,22 +327,14 @@ export const useTradeStore = create<TradeState>()(
           set(updates as TradeState);
         } catch (error) {
           console.error('[useTradeStore] updateMarketData failed:', error);
-          // Fallback: slight price variation with mock data
-          const newPrice = selectedMarket.price * (1 + (Math.random() - 0.5) * 0.001);
-          set({
-            selectedMarket: { ...selectedMarket, price: parseFloat(newPrice.toFixed(2)) },
-            orderBook: generateMockOrderBook(newPrice),
-            isLoadingMarket: false,
-          });
+          set({ isLoadingMarket: false });
         }
       },
 
-      // Lightweight update of all market prices (for watchlist) 
+      // Lightweight update for all watchlist prices
       updateAllMarketPrices: async () => {
         const { markets } = get();
         try {
-          const symbols = markets.map((m) => m.symbol).join(',');
-          // Fetch all tickers from Binance at once  
           const res = await fetch(`/api/trade/all-tickers`);
           if (!res.ok) throw new Error('Failed');
           const tickers = await res.json();
@@ -246,7 +356,7 @@ export const useTradeStore = create<TradeState>()(
 
           set({ markets: updatedMarkets });
         } catch {
-          // Silently fail; prices update on next full updateMarketData call
+          // Silently fail; prices update on next WS message
         }
       },
     }),

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   try {
     const res = await fetch(
       `https://api.binance.com/api/v3/klines?symbol=${symbol.toUpperCase()}&interval=${interval}&limit=${limit}`,
-      { next: { revalidate: interval === '1m' ? 30 : 60 } }
+      { cache: 'no-store' }
     );
 
     if (!res.ok) {

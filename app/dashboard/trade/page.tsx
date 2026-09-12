@@ -24,20 +24,28 @@ const MOBILE_TABS: { id: MobileTab; label: string }[] = [
 ];
 
 export default function DashboardTradePage() {
-  const { updateMarketData } = useTradeStore();
+  const { updateMarketData, updateAllMarketPrices, connectLiveStream, disconnectLiveStream } = useTradeStore();
   const [mounted, setMounted] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>('chart');
 
   useEffect(() => {
     setMounted(true);
-    // Initial fetch
-    updateMarketData();
-    // Poll every 4 seconds via our server-side proxy
-    const interval = setInterval(() => {
-      updateMarketData();
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [updateMarketData]);
+
+    // 1. Seed REST data on first load (prices, order book, trades)
+    updateMarketData().then(() => {
+      // 2. After seed, open WebSocket for real-time streaming
+      connectLiveStream();
+    });
+
+    // 3. Update all watchlist tickers every 30s via REST (non-selected pairs)
+    updateAllMarketPrices();
+    const allTickerInterval = setInterval(updateAllMarketPrices, 30_000);
+
+    return () => {
+      clearInterval(allTickerInterval);
+      disconnectLiveStream();
+    };
+  }, []); // eslint-disable-line
 
   if (!mounted) {
     return (

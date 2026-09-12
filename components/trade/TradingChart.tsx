@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createChart, ColorType, ISeriesApi, CandlestickSeries, IChartApi } from 'lightweight-charts';
 import { useTradeStore, ChartInterval } from '@/hooks/use-trade-store';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const INTERVALS: { label: string; value: ChartInterval }[] = [
@@ -15,15 +15,26 @@ const INTERVALS: { label: string; value: ChartInterval }[] = [
   { label: '1D', value: '1d' },
 ];
 
+// Binance WS stream name — maps our interval key to Binance kline stream interval
+const intervalStreamMap: Record<ChartInterval, string> = {
+  '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d',
+};
+
 export function TradingChart() {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const { selectedMarket, chartInterval, setChartInterval, lastUpdated } = useTradeStore();
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+
+  const { selectedMarket, chartInterval, setChartInterval } = useTradeStore();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [wsStatus, setWsStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'error'>('connecting');
+  const [lastCandleTime, setLastCandleTime] = useState<string>('');
 
-  // Init chart once
+  // ── 1. Init lightweight-charts once ─────────────────────────────────────────
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -45,7 +56,7 @@ export function TradingChart() {
       timeScale: {
         borderColor: '#1e2329',
         timeVisible: true,
-        secondsVisible: false,
+        secondsVisible: chartInterval === '1m' || chartInterval === '5m',
       },
       rightPriceScale: { borderColor: '#1e2329' },
       width: chartContainerRef.current.clientWidth,
@@ -81,25 +92,30 @@ export function TradingChart() {
       chartRef.current = null;
       seriesRef.current = null;
     };
-  }, []);
+  }, []); // eslint-disable-line
 
-  // Load chart data when symbol or interval changes
-  const loadChartData = useCallback(async () => {
+  // ── 2. Load historical klines from Binance REST via our proxy ───────────────
+  const loadHistoricalData = useCallback(async () => {
     if (!seriesRef.current) return;
     setIsLoading(true);
     setError(null);
 
     try {
       const res = await fetch(
-        `/api/trade/klines?symbol=${selectedMarket.symbol}&interval=${chartInterval}&limit=200`
+        `/api/trade/klines?symbol=${selectedMarket.symbol}&interval=${chartInterval}&limit=500`,
+        { cache: 'no-store' } // Always fresh — no stale cache
       );
       if (!res.ok) throw new Error('Failed to load chart data');
       const candles = await res.json();
-
       if (!Array.isArray(candles) || candles.length === 0) throw new Error('No data');
 
       seriesRef.current.setData(candles);
       chartRef.current?.timeScale().fitContent();
+      chartRef.current?.applyOptions({
+        timeScale: {
+          secondsVisible: chartInterval === '1m' || chartInterval === '5m',
+        },
+      });
     } catch (err: any) {
       setError('Chart data unavailable');
     } finally {
@@ -108,26 +124,112 @@ export function TradingChart() {
   }, [selectedMarket.symbol, chartInterval]);
 
   useEffect(() => {
-    loadChartData();
-  }, [loadChartData]);
+    loadHistoricalData();
+  }, [loadHistoricalData]);
 
-  // Live update: update the last candle every time market updates
-  useEffect(() => {
-    if (!seriesRef.current || !selectedMarket.price || isLoading) return;
-    try {
-      const now = Math.floor(Date.now() / 1000);
-      // Lightweight-charts requires time to be latest — just update current bar
-      seriesRef.current.update({
-        time: now as any,
-        open: selectedMarket.price * 0.9999,
-        high: selectedMarket.high24h || selectedMarket.price * 1.001,
-        low: selectedMarket.low24h || selectedMarket.price * 0.999,
-        close: selectedMarket.price,
-      });
-    } catch {
-      // Ignore if update fails (e.g. time out of order)
+  // ── 3. Binance WebSocket — real-time kline stream ────────────────────────────
+  const connectWebSocket = useCallback(() => {
+    // Close existing connection
+    if (wsRef.current) {
+      wsRef.current.onclose = null; // prevent reconnect loop
+      wsRef.current.close();
+      wsRef.current = null;
     }
-  }, [selectedMarket.price, isLoading, lastUpdated]);
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+    }
+
+    const streamInterval = intervalStreamMap[chartInterval];
+    const streamName = `${selectedMarket.symbol.toLowerCase()}@kline_${streamInterval}`;
+    const wsUrl = `wss://stream.binance.com:9443/ws/${streamName}`;
+
+    setWsStatus('connecting');
+
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch {
+      setWsStatus('error');
+      return;
+    }
+
+    ws.onopen = () => {
+      setWsStatus('live');
+      reconnectAttemptsRef.current = 0;
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.e !== 'kline') return;
+
+        const k = msg.k;
+        const candle = {
+          time: Math.floor(k.t / 1000) as any,
+          open: parseFloat(k.o),
+          high: parseFloat(k.h),
+          low: parseFloat(k.l),
+          close: parseFloat(k.c),
+        };
+
+        if (seriesRef.current) {
+          try {
+            seriesRef.current.update(candle);
+            // Update the last candle timestamp display (HH:MM:SS)
+            const d = new Date(k.t);
+            setLastCandleTime(d.toTimeString().slice(0, 8));
+          } catch {
+            // lightweight-charts throws if time goes backwards — safe to ignore
+          }
+        }
+      } catch {
+        // JSON parse error — ignore
+      }
+    };
+
+    ws.onerror = () => {
+      setWsStatus('reconnecting');
+    };
+
+    ws.onclose = () => {
+      // Auto-reconnect with exponential backoff (max 16s)
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 16000);
+      reconnectAttemptsRef.current += 1;
+      setWsStatus('reconnecting');
+      reconnectTimerRef.current = setTimeout(() => {
+        connectWebSocket();
+      }, delay);
+    };
+
+    wsRef.current = ws;
+  }, [selectedMarket.symbol, chartInterval]);
+
+  // Reconnect whenever symbol or interval changes
+  useEffect(() => {
+    // Wait until historical data is loaded before connecting WS
+    if (!isLoading) {
+      connectWebSocket();
+    }
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
+    };
+  }, [connectWebSocket, isLoading]);
+
+  // ── Status indicator ─────────────────────────────────────────────────────────
+  const statusConfig = {
+    connecting: { label: 'Connecting...', color: 'text-amber-400', dot: 'bg-amber-400' },
+    live: { label: 'Live', color: 'text-emerald-400', dot: 'bg-emerald-400' },
+    reconnecting: { label: 'Reconnecting', color: 'text-amber-400', dot: 'bg-amber-400' },
+    error: { label: 'Offline', color: 'text-[#f6465d]', dot: 'bg-[#f6465d]' },
+  };
+  const status = statusConfig[wsStatus];
 
   return (
     <div className="flex flex-col h-full bg-[#0b0e11] overflow-hidden">
@@ -158,13 +260,13 @@ export function TradingChart() {
         <div className="hidden sm:flex items-center gap-5 text-[10px]">
           <div className="flex items-center gap-1.5">
             <span className="text-[#848e9c]">High</span>
-            <span className="text-[#eaecef] font-mono font-bold">
+            <span className="text-[#0ecb81] font-mono font-bold">
               {selectedMarket.high24h?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-[#848e9c]">Low</span>
-            <span className="text-[#eaecef] font-mono font-bold">
+            <span className="text-[#f6465d] font-mono font-bold">
               {selectedMarket.low24h?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </span>
           </div>
@@ -172,6 +274,30 @@ export function TradingChart() {
             <span className="text-[#848e9c]">Vol ({selectedMarket.baseAsset})</span>
             <span className="text-[#eaecef] font-mono font-bold">
               {selectedMarket.volume24h?.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </span>
+          </div>
+        </div>
+
+        {/* WebSocket live status — pushed right */}
+        <div className="ml-auto flex items-center gap-2">
+          {lastCandleTime && wsStatus === 'live' && (
+            <span className="text-[9px] text-[#848e9c] font-mono hidden sm:block">
+              {lastCandleTime}
+            </span>
+          )}
+          <div className="flex items-center gap-1.5 bg-black/20 px-2 py-1 rounded-md border border-white/5">
+            <div className="relative flex items-center justify-center">
+              {wsStatus === 'live' ? (
+                <>
+                  <div className={`absolute w-2 h-2 ${status.dot} rounded-full animate-ping opacity-60`} />
+                  <div className={`w-1.5 h-1.5 ${status.dot} rounded-full relative`} />
+                </>
+              ) : (
+                <div className={`w-1.5 h-1.5 ${status.dot} rounded-full`} />
+              )}
+            </div>
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${status.color}`}>
+              {status.label}
             </span>
           </div>
         </div>
@@ -183,10 +309,12 @@ export function TradingChart() {
 
         {/* Loading overlay */}
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#0b0e11]/80 z-10">
+          <div className="absolute inset-0 flex items-center justify-center bg-[#0b0e11]/90 z-10">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-8 w-8 text-[#f0b90b] animate-spin" />
-              <span className="text-[#848e9c] text-xs font-medium">Loading chart...</span>
+              <span className="text-[#848e9c] text-xs font-medium">
+                Loading {selectedMarket.baseAsset}/{selectedMarket.quoteAsset} {chartInterval} chart...
+              </span>
             </div>
           </div>
         )}
@@ -195,9 +323,10 @@ export function TradingChart() {
         {error && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#0b0e11]/50 z-10">
             <div className="text-center">
+              <WifiOff className="h-8 w-8 text-[#848e9c] mx-auto mb-2" />
               <p className="text-[#848e9c] text-sm">{error}</p>
               <button
-                onClick={loadChartData}
+                onClick={loadHistoricalData}
                 className="mt-2 px-4 py-1 bg-[#f0b90b]/20 text-[#f0b90b] text-xs rounded hover:bg-[#f0b90b]/30 transition-colors"
               >
                 Retry
