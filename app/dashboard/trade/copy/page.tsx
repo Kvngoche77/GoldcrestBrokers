@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,21 +8,66 @@ import {
   Search, CheckCircle2, AlertCircle, Loader2, X,
   BarChart3, Copy, Activity, ArrowUpRight, ArrowDownRight,
   Clock, RefreshCw, Zap, DollarSign, Calendar, Cpu,
-  Award, SlidersHorizontal, Check, UserCheck, Send, Sparkles
+  Award, SlidersHorizontal, Check, UserCheck, Send, Sparkles,
+  SortAsc, Wallet, TrendingDown
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import { Trader, Subscription, CopyTraderApplication } from '@/types';
 
+// ── Sparkline helper (mini inline SVG) ─────────────────────────────────────────
+function Sparkline({ data, className }: { data: number[]; className?: string }) {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const w = 80; const h = 28;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / range) * h;
+    return `${x},${y}`;
+  }).join(' ');
+  const isUp = data[data.length - 1] >= data[0];
+  const color = isUp ? '#0ecb81' : '#f6465d';
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className={className} aria-hidden>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ── Days remaining badge ────────────────────────────────────────────────────────
+function DaysRemainingBadge({ daysCredited, expiresAt }: { daysCredited: number; expiresAt?: string }) {
+  const remaining = Math.max(0, 30 - (daysCredited || 0));
+  const color = remaining > 15
+    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+    : remaining > 7
+    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+    : 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+  const expireDate = expiresAt ? new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null;
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${color}`}>
+        {remaining}d remaining
+      </span>
+      {expireDate && <span className="text-[10px] text-slate-500">· expires {expireDate}</span>}
+    </div>
+  );
+}
+
+type SortKey = 'roi' | 'winrate' | 'followers' | 'risk' | 'newest';
+
 export default function CopyTradingPage() {
   const { profile, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState<'all' | 'low' | 'med' | 'high'>('all');
+  const [sortKey, setSortKey] = useState<SortKey>('roi');
   const [selectedTrader, setSelectedTrader] = useState<Trader | null>(null);
   const [isSubscribeModalOpen, setIsSubscribeModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'investor' | 'trader-area' | 'my-portfolio'>('investor');
+  const [autoSynced, setAutoSynced] = useState(false);
 
   // Trader Area Application Form State
   const [appForm, setAppForm] = useState({
@@ -186,16 +231,15 @@ export default function CopyTradingPage() {
     onSuccess: (result: any) => {
       if (result && result.credited_count > 0) {
         toast.success(
-          `Synced ${result.credited_count} active subscription cycle(s)! Total credited: +$${Number(result.total_net_pnl || 0).toFixed(2)} (5% daily return)`,
+          `💰 ${result.credited_count} daily return(s) credited! +$${Number(result.total_net_pnl || 0).toFixed(2)} added to balance.`,
           { duration: 6000 }
         );
-      } else {
-        toast('Daily ROI is synced! Returns credit automatically every 24 hours.', { icon: '✨' });
+        queryClient.invalidateQueries({ queryKey: ['user-copy-subs'] });
+        refreshProfile();
       }
-      queryClient.invalidateQueries({ queryKey: ['user-copy-subs'] });
-      refreshProfile();
+      // Silent if nothing new to credit
     },
-    onError: (err: any) => toast.error(err.message || 'Sync failed'),
+    onError: () => {}, // Silent on error for auto-sync
   });
 
   // Submit Trader Application
@@ -245,20 +289,35 @@ export default function CopyTradingPage() {
     }
   };
 
-  // Filter traders by search term & risk rating
-  const filteredTraders = traders.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.bio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (t.platform && t.platform.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    if (!matchesSearch) return false;
-    
-    const risk = t.risk_score || 3;
-    if (riskFilter === 'low') return risk <= 3;
-    if (riskFilter === 'med') return risk >= 4 && risk <= 6;
-    if (riskFilter === 'high') return risk >= 7;
-    return true;
-  });
+  // Auto-sync daily ROI on mount (silent — only toasts if credits were due)
+  useEffect(() => {
+    if (!autoSynced && profile?.id && userSubs.some((s: any) => s.status === 'active')) {
+      setAutoSynced(true);
+      syncDailyROIMutation.mutate();
+    }
+  }, [profile?.id, userSubs, autoSynced]);
+
+  // Filter + sort traders
+  const filteredTraders = traders
+    .filter(t => {
+      const matchesSearch = t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.bio.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (t.platform && t.platform.toLowerCase().includes(searchTerm.toLowerCase()));
+      if (!matchesSearch) return false;
+      const risk = t.risk_score || 3;
+      if (riskFilter === 'low') return risk <= 3;
+      if (riskFilter === 'med') return risk >= 4 && risk <= 6;
+      if (riskFilter === 'high') return risk >= 7;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortKey === 'roi') return (b.roi_percent || 0) - (a.roi_percent || 0);
+      if (sortKey === 'winrate') return (b.win_rate || 0) - (a.win_rate || 0);
+      if (sortKey === 'followers') return (b.total_followers || 0) - (a.total_followers || 0);
+      if (sortKey === 'risk') return (a.risk_score || 5) - (b.risk_score || 5);
+      if (sortKey === 'newest') return (b.total_active_days || 0) - (a.total_active_days || 0);
+      return 0;
+    });
 
   const activeSubs = userSubs.filter((s: any) => s.status === 'active');
   const totalDailyReturnsEarned = userSubs.reduce((acc: number, sub: any) => {
@@ -266,6 +325,8 @@ export default function CopyTradingPage() {
     const dailyAmt = (Number(sub.amount) * 0.05);
     return acc + (days * dailyAmt);
   }, 0);
+  const totalInvested = userSubs.reduce((acc: number, sub: any) => acc + Number(sub.amount || 0), 0);
+  const avgDailyReturn = activeSubs.reduce((acc: number, sub: any) => acc + (Number(sub.amount) * 0.05), 0);
 
   const isSubscribed = (traderId: string) => userSubs.some((s: any) => s.trader_id === traderId && s.status === 'active');
 
@@ -389,7 +450,7 @@ export default function CopyTradingPage() {
             className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all glow-blue flex items-center justify-center gap-2"
           >
             <RefreshCw size={14} className={syncDailyROIMutation.isPending ? 'animate-spin' : ''} />
-            {syncDailyROIMutation.isPending ? 'Syncing Returns...' : 'Sync Daily 5% Returns Now'}
+            {syncDailyROIMutation.isPending ? 'Checking...' : 'Check for Credits'}
           </button>
         )}
       </div>
@@ -419,23 +480,43 @@ export default function CopyTradingPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-                <span className="text-xs text-slate-400 font-semibold flex items-center gap-1 mr-1">
-                  <SlidersHorizontal size={14} /> Risk Level:
-                </span>
-                {(['all', 'low', 'med', 'high'] as const).map(risk => (
-                  <button
-                    key={risk}
-                    onClick={() => setRiskFilter(risk)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
-                      riskFilter === risk
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white/[0.03] text-slate-400 hover:text-white border border-white/10'
-                    }`}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto overflow-x-auto">
+                {/* Risk filter */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-semibold flex items-center gap-1">
+                    <SlidersHorizontal size={14} /> Risk:
+                  </span>
+                  {(['all', 'low', 'med', 'high'] as const).map(risk => (
+                    <button
+                      key={risk}
+                      onClick={() => setRiskFilter(risk)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                        riskFilter === risk
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white/[0.03] text-slate-400 hover:text-white border border-white/10'
+                      }`}
+                    >
+                      {risk === 'all' ? 'All' : risk}
+                    </button>
+                  ))}
+                </div>
+                {/* Sort dropdown */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-semibold flex items-center gap-1">
+                    <SortAsc size={14} /> Sort:
+                  </span>
+                  <select
+                    value={sortKey}
+                    onChange={e => setSortKey(e.target.value as SortKey)}
+                    className="bg-white/[0.03] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
                   >
-                    {risk === 'all' ? 'All Risk' : `${risk} Risk`}
-                  </button>
-                ))}
+                    <option value="roi">Top ROI</option>
+                    <option value="winrate">Win Rate</option>
+                    <option value="followers">Most Copied</option>
+                    <option value="risk">Lowest Risk</option>
+                    <option value="newest">Most Active</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -472,8 +553,7 @@ export default function CopyTradingPage() {
                       animate={{ opacity: 1, y: 0 }}
                     >
                       <div className="p-6 pb-4">
-                        {/* Top Profile Header */}
-                        <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3">
                             <div className="relative">
                               <div className="w-14 h-14 rounded-2xl overflow-hidden bg-blue-600/10 border border-blue-500/20 flex-shrink-0">
@@ -489,25 +569,24 @@ export default function CopyTradingPage() {
                                 <Shield size={10} className="text-white" />
                               </div>
                             </div>
-
                             <div>
-                              <h3 className="font-bold text-white text-base group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
-                                {trader.name}
-                              </h3>
+                              <h3 className="font-bold text-white text-base group-hover:text-blue-400 transition-colors">{trader.name}</h3>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-[10px]">
-                                  {trader.platform || 'MT5'}
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-medium">
-                                  {trader.account_type || 'Standard'}
-                                </span>
+                                <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-[10px]">{trader.platform || 'MT5'}</span>
+                                <span className="text-[10px] text-slate-400 font-medium">{trader.account_type || 'Standard'}</span>
                               </div>
                             </div>
                           </div>
-
-                          <div className="text-right">
+                          {/* ROI + Sparkline */}
+                          <div className="text-right flex flex-col items-end gap-1">
                             <p className="text-lg font-extrabold text-emerald-400">+{trader.roi_percent}%</p>
                             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">ROI Gains</p>
+                            {(() => {
+                              // Use monthly_performance if available, else generate a deterministic upward mock
+                              const perf: number[] = (trader as any).monthly_performance ||
+                                Array.from({ length: 8 }, (_, i) => trader.roi_percent * (0.3 + i * 0.1));
+                              return <Sparkline data={perf} />;
+                            })()}
                           </div>
                         </div>
 
@@ -767,13 +846,35 @@ export default function CopyTradingPage() {
               </div>
             ) : (
               <div className="grid gap-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <Activity size={18} className="text-emerald-400" />
-                    Active Copy Subscriptions ({activeSubs.length})
-                  </h3>
-                  <span className="text-xs text-slate-400">Duration: 30 Days · 5% Daily ROI</span>
+              {/* Portfolio Summary Banner */}
+              {userSubs.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 glass rounded-2xl border border-white/[0.06]">
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Total Invested</p>
+                    <p className="text-lg font-extrabold text-white">${totalInvested.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Total ROI Earned</p>
+                    <p className="text-lg font-extrabold text-emerald-400">+${totalDailyReturnsEarned.toFixed(2)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Active Subs</p>
+                    <p className="text-lg font-extrabold text-blue-400">{activeSubs.length}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Avg Daily Return</p>
+                    <p className="text-lg font-extrabold text-amber-400">${avgDailyReturn.toFixed(2)}/day</p>
+                  </div>
                 </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Activity size={18} className="text-emerald-400" />
+                  Active Copy Subscriptions ({activeSubs.length})
+                </h3>
+                <span className="text-xs text-slate-400">Duration: 30 Days · 5% Daily ROI</span>
+              </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   {userSubs.map((sub: any) => {
@@ -792,9 +893,10 @@ export default function CopyTradingPage() {
                             </div>
                             <div>
                               <h4 className="font-bold text-white text-base">{trader?.name || 'Master Trader'}</h4>
-                              <p className="text-xs text-slate-400">
+                              <p className="text-xs text-slate-400 mb-1">
                                 Subscribed for ${sub.amount} · {trader?.platform || 'MT5'} ({trader?.account_type || 'Standard'})
                               </p>
+                              <DaysRemainingBadge daysCredited={sub.days_credited || 0} expiresAt={sub.expires_at} />
                             </div>
                           </div>
 
@@ -1027,19 +1129,37 @@ export default function CopyTradingPage() {
                 You are subscribing to copy this strategy on MT5 / Standard account for a 30-day duration.
               </p>
 
-              <div className="space-y-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-6 text-xs text-slate-300">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Subscription Fee (30 Days)</span>
-                  <span className="font-extrabold text-white">${selectedTrader.subscription_rate.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Guaranteed Daily Return</span>
-                  <span className="font-extrabold text-emerald-400">5.0% Daily</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Daily Payout Amount</span>
-                  <span className="font-extrabold text-emerald-400">+${(selectedTrader.subscription_rate * 0.05).toFixed(2)}/day</span>
-                </div>
+              <div className="space-y-3 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] mb-4 text-xs text-slate-300">
+                {/* Projected Returns Calculator */}
+                {(() => {
+                  const fee = selectedTrader.subscription_rate;
+                  const dailyRate = fee * 0.05;
+                  const grossReturn = dailyRate * 30;
+                  const netProfit = grossReturn - fee;
+                  const netPct = ((netProfit / fee) * 100).toFixed(0);
+                  return (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Subscription Fee (30 Days)</span>
+                        <span className="font-extrabold text-white">-${fee.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Daily Payout (5%)</span>
+                        <span className="font-extrabold text-emerald-400">+${dailyRate.toFixed(2)} / day</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">30-Day Gross Return</span>
+                        <span className="font-extrabold text-emerald-400">+${grossReturn.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between border-t border-white/[0.06] pt-2">
+                        <span className="text-slate-300 font-bold">Net Profit After Fee</span>
+                        <span className={`font-extrabold ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)} ({netPct}%)
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
                 <div className="flex justify-between border-t border-white/[0.06] pt-2">
                   <span className="text-slate-400">Your Wallet Balance</span>
                   <span className={`font-extrabold ${Number(profile?.balance || 0) >= selectedTrader.subscription_rate ? 'text-emerald-400' : 'text-rose-400'}`}>

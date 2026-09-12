@@ -3,10 +3,21 @@
 import React from 'react';
 import { useTradeStore } from '@/hooks/use-trade-store';
 import { cn } from '@/lib/utils';
+import { Star } from 'lucide-react';
+
+// Format large numbers as $1.2B, $456M, $12.3K
+function formatVolUSD(volume: number, price: number): string {
+  const val = volume * price;
+  if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(2)}B`;
+  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+  if (val >= 1_000) return `$${(val / 1_000).toFixed(1)}K`;
+  return `$${val.toFixed(0)}`;
+}
 
 export function TradingHeader() {
-  const { selectedMarket } = useTradeStore();
+  const { selectedMarket, favoriteSymbols, toggleFavorite } = useTradeStore();
   const isPositive = selectedMarket.change24h >= 0;
+  const isFav = favoriteSymbols.includes(selectedMarket.symbol);
 
   const formatPrice = (price: number) => {
     if (price >= 1000) return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -16,9 +27,24 @@ export function TradingHeader() {
 
   return (
     <header className="h-[60px] bg-[#161a1e] flex items-center px-3 sm:px-4 gap-3 sm:gap-6 select-none border-b border-[#1e2329] relative overflow-hidden flex-shrink-0">
-      
-      {/* Symbol */}
+
+      {/* Symbol + Favorite Star */}
       <div className="flex items-center gap-1.5 pr-3 sm:pr-6 border-r border-[#1e2329] h-8 flex-shrink-0">
+        {/* Favorite star */}
+        <button
+          onClick={() => toggleFavorite(selectedMarket.symbol)}
+          title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+          className="mr-1 flex-shrink-0 transition-transform hover:scale-110 active:scale-95"
+        >
+          <Star
+            size={14}
+            className={cn(
+              'transition-colors duration-200',
+              isFav ? 'text-[#f0b90b] fill-[#f0b90b]' : 'text-[#5e6673] hover:text-[#848e9c]'
+            )}
+          />
+        </button>
+
         <div className="flex items-center gap-1">
           <span className="text-sm sm:text-lg font-black text-[#eaecef] tracking-tight">
             {selectedMarket.baseAsset}
@@ -73,8 +99,21 @@ export function TradingHeader() {
           </span>
         </div>
 
-        {/* Volume */}
+        {/* Volume (USDT) — replaces base asset volume for clarity */}
         <div className="hidden lg:flex flex-col">
+          <span className="text-[9px] text-[#848e9c] font-bold uppercase tracking-widest leading-none">
+            Vol (USDT)
+          </span>
+          <span className="text-[12px] font-bold font-mono text-[#eaecef] mt-1.5 tabular-nums">
+            {selectedMarket.volume24h && selectedMarket.price
+              ? formatVolUSD(selectedMarket.volume24h, selectedMarket.price)
+              : '—'
+            }
+          </span>
+        </div>
+
+        {/* Volume (base asset) — secondary */}
+        <div className="hidden xl:flex flex-col">
           <span className="text-[9px] text-[#848e9c] font-bold uppercase tracking-widest leading-none">
             Vol ({selectedMarket.baseAsset})
           </span>
