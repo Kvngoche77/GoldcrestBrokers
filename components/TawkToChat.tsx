@@ -1,63 +1,28 @@
 'use client';
 
-import { useEffect } from 'react';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TawkToChat – embeds the Tawk.to live chat widget site-wide.
-//
-// HOW TO CONFIGURE:
-//  1. Sign up / log in at https://tawk.to
-//  2. Go to Administration → Chat Widget → Direct Chat Link section.
-//  3. Copy your Property ID and Widget ID from the embed snippet, e.g.:
-//       https://embed.tawk.to/PROPERTY_ID/WIDGET_ID
-//  4. Set the two env vars in your .env.local (and in Netlify's env settings):
-//       NEXT_PUBLIC_TAWKTO_PROPERTY_ID=your_property_id
-//       NEXT_PUBLIC_TAWKTO_WIDGET_ID=your_widget_id
-// ─────────────────────────────────────────────────────────────────────────────
-
-declare global {
-  interface Window {
-    Tawk_API?: {
-      onLoad?: () => void;
-      hideWidget?: () => void;
-      showWidget?: () => void;
-      setAttributes?: (attrs: Record<string, string>, callback?: (error: unknown) => void) => void;
-    };
-    Tawk_LoadStart?: Date;
-  }
-}
+import Script from 'next/script';
 
 export function TawkToChat() {
-  useEffect(() => {
-    const propertyId = process.env.NEXT_PUBLIC_TAWKTO_PROPERTY_ID || '6af1b3a0614d973c4613356f';
-    const widgetId = process.env.NEXT_PUBLIC_TAWKTO_WIDGET_ID || '1k702be6d';
+  const propertyId = process.env.NEXT_PUBLIC_TAWKTO_PROPERTY_ID || '6af1b3a0614d973c4613356f';
+  const widgetId = process.env.NEXT_PUBLIC_TAWKTO_WIDGET_ID || '1k702be6d';
 
-    // Skip if IDs are missing
-    if (!propertyId || !widgetId) {
-      return;
-    }
-
-    // Avoid loading twice (e.g. React StrictMode double-invoke)
-    if (document.getElementById('tawkto-script')) return;
-
-    window.Tawk_API = window.Tawk_API || {};
-    window.Tawk_LoadStart = new Date();
-
-    const script = document.createElement('script');
-    script.id = 'tawkto-script';
-    script.async = true;
-    script.src = `https://embed.tawk.to/${propertyId}/${widgetId}`;
-    script.charset = 'UTF-8';
-    script.setAttribute('crossorigin', '*');
-
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup on unmount (dev HMR safety)
-      const existing = document.getElementById('tawkto-script');
-      if (existing) existing.remove();
-    };
-  }, []);
-
-  return null; // This component renders nothing — the widget injects itself.
+  return (
+    <Script
+      id="tawk-to-chat"
+      strategy="afterInteractive"
+      dangerouslySetInnerHTML={{
+        __html: `
+          var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+          (function(){
+            var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+            s1.async = true;
+            s1.src = 'https://embed.tawk.to/${propertyId}/${widgetId}';
+            s1.charset = 'UTF-8';
+            s1.setAttribute('crossorigin', '*');
+            s0.parentNode.insertBefore(s1, s0);
+          })();
+        `,
+      }}
+    />
+  );
 }
