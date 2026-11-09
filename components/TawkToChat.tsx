@@ -29,17 +29,11 @@ declare global {
 
 export function TawkToChat() {
   useEffect(() => {
-    const propertyId = process.env.NEXT_PUBLIC_TAWKTO_PROPERTY_ID;
-    const widgetId = process.env.NEXT_PUBLIC_TAWKTO_WIDGET_ID;
+    const propertyId = process.env.NEXT_PUBLIC_TAWKTO_PROPERTY_ID || '6af1b3a0614d973c4613356f';
+    const widgetId = process.env.NEXT_PUBLIC_TAWKTO_WIDGET_ID || '1k702be6d';
 
-    // Skip if env vars are not configured yet
+    // Skip if IDs are missing
     if (!propertyId || !widgetId) {
-      if (process.env.NODE_ENV === 'development') {
-        console.info(
-          '[TawkToChat] NEXT_PUBLIC_TAWKTO_PROPERTY_ID and NEXT_PUBLIC_TAWKTO_WIDGET_ID are not set. ' +
-          'Add them to your .env.local to enable live chat.'
-        );
-      }
       return;
     }
 
