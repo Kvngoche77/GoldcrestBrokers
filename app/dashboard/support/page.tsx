@@ -201,6 +201,18 @@ export default function SupportPage() {
         </button>
       </div>
 
+      {/* Live Chat Banner */}
+      <div className="flex items-center gap-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
+        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+          <MessageSquare size={20} className="text-emerald-400" />
+        </div>
+        <div className="flex-1">
+          <p className="text-emerald-400 font-semibold text-sm">Live Chat Available</p>
+          <p className="text-emerald-300/70 text-xs mt-0.5">Need instant help? Use the live chat widget in the bottom-right corner to talk to our support team in real-time.</p>
+        </div>
+        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

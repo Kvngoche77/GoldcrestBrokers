@@ -59,8 +59,8 @@ export default function DepositPage() {
       setTimeout(() => { window.location.href = '/dashboard/kyc'; }, 1500);
       return;
     }
-    if (!amount || Number(amount) < 50) {
-      toast.error('Minimum deposit is $50');
+    if (!amount || Number(amount) < 500) {
+      toast.error('Minimum deposit is $500');
       return;
     }
     const cleanHash = txHash.trim();
@@ -275,8 +275,8 @@ export default function DepositPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Minimum $50"
-                  min={50}
+                  placeholder="Minimum $500"
+                  min={500}
                   className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 transition-all"
                 />
               </div>

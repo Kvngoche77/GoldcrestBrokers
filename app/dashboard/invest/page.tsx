@@ -19,7 +19,7 @@ async function fetchPlans(): Promise<InvestmentPlan[]> {
       {
         name: 'Starter Plan',
         description: 'Perfect for beginners looking to enter the market.',
-        min_amount: 50,
+        min_amount: 500,
         max_amount: 999,
         daily_roi_percent: 1.5,
         duration_days: 30,

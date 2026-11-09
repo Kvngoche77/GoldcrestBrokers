@@ -60,6 +60,18 @@ export default function AdminDepositsPage() {
         message: `Your deposit of $${amount.toFixed(2)} has been approved and credited to your account.`,
         type: 'success',
       });
+      // Send approval email to user
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'deposit_approved',
+          user_id: userId,
+          amount,
+          currency: 'USD',
+          origin: window.location.origin,
+        }),
+      }).catch(err => console.error('Error sending deposit approved email:', err));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-deposits'] });
@@ -77,6 +89,18 @@ export default function AdminDepositsPage() {
         message: `Your deposit of $${amount.toFixed(2)} could not be verified. Please contact support.`,
         type: 'error',
       });
+      // Send rejection email to user
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'deposit_rejected',
+          user_id: userId,
+          amount,
+          currency: 'USD',
+          origin: window.location.origin,
+        }),
+      }).catch(err => console.error('Error sending deposit rejected email:', err));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-deposits'] });

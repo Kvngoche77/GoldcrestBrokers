@@ -17,7 +17,7 @@ const footerLinks = {
   ],
   Support: [
     { href: '/dashboard', label: 'Dashboard' },
-    { href: '/help', label: 'Help Center' },
+    { href: '/dashboard/support', label: 'Support Tickets' },
     { href: 'mailto:support@goldcrestbroker.com', label: 'Contact Support' },
     { href: '/faq', label: 'FAQ' },
   ],

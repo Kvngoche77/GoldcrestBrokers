@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from '@/components/providers';
+import { TawkToChat } from '@/components/TawkToChat';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <Providers>{children}</Providers>
+        <TawkToChat />
       </body>
     </html>
   );

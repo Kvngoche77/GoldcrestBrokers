@@ -434,6 +434,74 @@ export async function POST(req: NextRequest) {
         `;
         break;
 
+      case 'deposit_approved':
+        subject = `Deposit Approved & Credited: $${Number(amount).toFixed(2)} ${currency || 'USD'}`;
+        html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+      <div style="margin-bottom: 24px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+        <span style="font-size: 22px; font-weight: bold; color: #0f172a;">Goldcrest<span style="color: #2563eb;">Brokers</span></span>
+      </div>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="width: 64px; height: 64px; background-color: #ecfdf5; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 32px;">✅</div>
+      </div>
+      <h1 style="color: #10b981; margin-bottom: 16px; font-size: 22px; font-weight: 700; text-align: center;">Deposit Approved!</h1>
+      <p style="color: #334155; font-size: 16px; line-height: 1.5;">Hi ${finalName || 'Trader'},</p>
+      <p style="color: #334155; font-size: 16px; line-height: 1.5;">Great news! Your deposit has been <strong style="color: #10b981;">approved and credited</strong> to your account balance. You can now use your funds to invest or trade.</p>
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 24px 0;">
+        <h3 style="margin-top: 0; margin-bottom: 12px; color: #0f172a;">Transaction Details</h3>
+        <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Amount Credited:</td>
+            <td style="padding: 6px 0; color: #10b981; font-weight: 700; text-align: right;">+$${Number(amount).toFixed(2)} ${currency || 'USD'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Status:</td>
+            <td style="padding: 6px 0; color: #10b981; font-weight: 600; text-align: right;">Completed ✓</td>
+          </tr>
+        </table>
+      </div>
+      <p style="margin: 30px 0; text-align: center;">
+        <a href="${origin || 'http://localhost:3000'}/dashboard" style="background-color: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);">Go to Dashboard</a>
+      </p>
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;"/>
+      <p style="color: #64748b; font-size: 12px; text-align: center; margin-bottom: 0;">Goldcrest Brokers Team</p>
+    </div>
+  `;
+        break;
+
+      case 'deposit_rejected':
+        subject = `Deposit Request Could Not Be Verified: $${Number(amount).toFixed(2)} ${currency || 'USD'}`;
+        html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+      <div style="margin-bottom: 24px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
+        <span style="font-size: 22px; font-weight: bold; color: #0f172a;">Goldcrest<span style="color: #2563eb;">Brokers</span></span>
+      </div>
+      <h1 style="color: #ef4444; margin-bottom: 16px; font-size: 22px; font-weight: 700; text-align: center;">Deposit Could Not Be Verified</h1>
+      <p style="color: #334155; font-size: 16px; line-height: 1.5;">Hi ${finalName || 'Trader'},</p>
+      <p style="color: #334155; font-size: 16px; line-height: 1.5;">We were unable to verify your deposit transaction. This may be due to an invalid or unconfirmed transaction hash.</p>
+      <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 24px 0;">
+        <h3 style="margin-top: 0; margin-bottom: 12px; color: #0f172a;">Transaction Details</h3>
+        <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Amount:</td>
+            <td style="padding: 6px 0; color: #ef4444; font-weight: 600; text-align: right;">$${Number(amount).toFixed(2)} ${currency || 'USD'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Status:</td>
+            <td style="padding: 6px 0; color: #ef4444; font-weight: 600; text-align: right;">Rejected</td>
+          </tr>
+        </table>
+      </div>
+      <p style="color: #334155; font-size: 16px; line-height: 1.5;">If you believe this is a mistake, please contact our support team with your transaction receipt and we will investigate further.</p>
+      <p style="margin: 30px 0; text-align: center;">
+        <a href="${origin || 'http://localhost:3000'}/dashboard/support" style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px;">Contact Support</a>
+      </p>
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;"/>
+      <p style="color: #64748b; font-size: 12px; text-align: center; margin-bottom: 0;">Goldcrest Brokers Team</p>
+    </div>
+  `;
+        break;
+
       case 'followup_email':
         // Admin follow-up emails pass subject and html directly
         if (!custom_subject || !custom_html) {
