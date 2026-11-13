@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { GoogleTranslate } from '@/components/GoogleTranslate';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -236,9 +237,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const initials = displayUsername.slice(0, 2).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#040c18] flex">
+    <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#060d1a] border-r border-white/[0.05] flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 dark:bg-[#060d1a] bg-white border-r dark:border-white/[0.05] border-slate-200/80 flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-6 py-5 border-b border-white/[0.05]">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
@@ -319,7 +320,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 bg-[#040c18]/90 backdrop-blur-xl border-b border-white/[0.05] px-4 sm:px-6 py-4 flex items-center justify-between">
+        <header className="sticky top-0 z-30 dark:bg-[#040c18]/90 bg-white/90 backdrop-blur-xl border-b dark:border-white/[0.05] border-slate-200/80 px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -335,6 +336,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
+            <ThemeToggle size="sm" />
             <GoogleTranslate />
             <Link href="/dashboard/notifications" className="relative p-2 rounded-xl glass text-slate-400 hover:text-white transition-colors">
               <Bell size={18} />

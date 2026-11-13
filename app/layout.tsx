@@ -41,6 +41,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+  (function() {
+    try {
+      var saved = localStorage.getItem('goldcrest-theme');
+      if (saved === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else if (saved === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) document.documentElement.classList.add('dark');
+      }
+    } catch(e) {
+      document.documentElement.classList.add('dark');
+    }
+  })();
+` }} />
         {/* Preconnect to Google Translate & Fonts for faster load */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

@@ -4,6 +4,34 @@
 
 @layer base {
   :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 8%;
+    --primary: 213 94% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 94%;
+    --secondary-foreground: 222 47% 20%;
+    --muted: 210 40% 94%;
+    --muted-foreground: 215 20% 45%;
+    --accent: 213 94% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 88%;
+    --input: 214 32% 88%;
+    --ring: 213 94% 50%;
+    --radius: 0.75rem;
+    --chart-1: 213 94% 50%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+
+  .dark {
     --background: 222 47% 5%;
     --foreground: 210 40% 98%;
     --card: 222 47% 8%;
@@ -51,9 +79,9 @@
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: hsl(222, 47%, 8%); }
-::-webkit-scrollbar-thumb { background: hsl(222, 47%, 20%); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: hsl(213, 94%, 55%); }
+::-webkit-scrollbar-track { background: hsl(var(--card)); }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary)); }
 
 /* Glass morphism */
 .glass {
@@ -67,6 +95,16 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+}
+
+/* Light mode glass overrides */
+:root:not(.dark) .glass {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+:root:not(.dark) .glass-strong {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 /* Gradient text */
@@ -127,11 +165,10 @@
 .shimmer {
   background: linear-gradient(
     90deg,
-    hsl(222, 47%, 10%) 0%,
-    hsl(222, 47%, 16%) 40%,
-    hsl(222, 47%, 20%) 50%,
-    hsl(222, 47%, 16%) 60%,
-    hsl(222, 47%, 10%) 100%
+    hsl(var(--muted)) 0%,
+    hsl(var(--secondary)) 40%,
+    hsl(var(--muted)) 60%,
+    hsl(var(--secondary)) 100%
   );
   background-size: 800px 100%;
   animation: shimmer 1.6s infinite linear;
@@ -142,11 +179,10 @@
 .skeleton {
   background: linear-gradient(
     90deg,
-    hsl(222, 47%, 10%) 0%,
-    hsl(222, 47%, 16%) 40%,
-    hsl(222, 47%, 20%) 50%,
-    hsl(222, 47%, 16%) 60%,
-    hsl(222, 47%, 10%) 100%
+    hsl(var(--muted)) 0%,
+    hsl(var(--secondary)) 40%,
+    hsl(var(--muted)) 60%,
+    hsl(var(--secondary)) 100%
   );
   background-size: 800px 100%;
   animation: shimmer 1.6s infinite linear;
@@ -231,9 +267,9 @@ body { top: 0 !important; }
   font-size: 0 !important;
 }
 .goog-te-gadget .goog-te-combo {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  background-color: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
   border-radius: 0.5rem;
   padding: 4px 8px;
   font-size: 13px;
@@ -241,7 +277,7 @@ body { top: 0 !important; }
   cursor: pointer;
   height: 32px;
 }
-.goog-te-gadget .goog-te-combo:hover { color: white; }
+.goog-te-gadget .goog-te-combo:hover { color: hsl(var(--foreground)); }
 .goog-logo-link { display: none !important; }
 
 /* Smooth scroll anchor offset (for sticky navbar) */
@@ -284,3 +320,41 @@ h1, h2, h3 { text-wrap: balance; }
 .nav-item-transition {
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
+
+/* =============================================
+   LIGHT MODE OVERRIDES
+   ============================================= */
+/* Navbar & Sidebar backgrounds */
+:root:not(.dark) .hero-gradient {
+  background: radial-gradient(ellipse at 20% 50%, rgba(29, 110, 245, 0.08) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 20%, rgba(16, 217, 130, 0.05) 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 80%, rgba(29, 110, 245, 0.05) 0%, transparent 50%);
+}
+:root:not(.dark) .grid-pattern {
+  background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Badge overrides for light mode */
+:root:not(.dark) .badge-success { background-color: rgb(16 185 129 / 0.12); color: #059669; border-color: rgb(16 185 129 / 0.25); }
+:root:not(.dark) .badge-pending { background-color: rgb(245 158 11 / 0.12); color: #d97706; border-color: rgb(245 158 11 / 0.25); }
+:root:not(.dark) .badge-danger  { background-color: rgb(239 68 68 / 0.12); color: #dc2626; border-color: rgb(239 68 68 / 0.25); }
+:root:not(.dark) .badge-info    { background-color: rgb(59 130 246 / 0.12); color: #2563eb; border-color: rgb(59 130 246 / 0.25); }
+:root:not(.dark) .badge-grey    { background-color: rgb(100 116 139 / 0.12); color: #475569; border-color: rgb(100 116 139 / 0.25); }
+
+/* Glow effects — softer in light mode */
+:root:not(.dark) .glow-blue { box-shadow: 0 0 15px rgba(29, 110, 245, 0.2), 0 0 40px rgba(29, 110, 245, 0.08); }
+
+/* card-hover in light mode */
+:root:not(.dark) .card-hover:hover {
+  box-shadow: 0 20px 60px rgba(0,0,0,0.12), 0 0 20px rgba(29,110,245,0.08);
+  border-color: rgba(29,110,245,0.2);
+}
+
+/* Navbar bg in light mode */
+:root:not(.dark) [class*="bg-\[#060d1a\]"] {
+  background-color: rgba(255,255,255,0.95) !important;
+}
+
+/* Toaster in light mode is handled by provider */

@@ -11,6 +11,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import { GoogleTranslate } from '@/components/GoogleTranslate';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const navLinks = [
   { href: '/#markets', label: 'Markets' },
@@ -57,7 +58,9 @@ export function Navbar() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-[#060d1a]/95 backdrop-blur-xl border-b border-white/[0.06] shadow-2xl' : 'bg-transparent'
+        scrolled
+          ? 'dark:bg-[#060d1a]/95 bg-white/95 backdrop-blur-xl border-b dark:border-white/[0.06] border-slate-200/80 shadow-2xl'
+          : 'bg-transparent'
       }`}
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -120,6 +123,7 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="hidden lg:flex items-center gap-3">
+            <ThemeToggle />
             <GoogleTranslate />
             {loading ? (
               <div className="w-8 h-8 rounded-full shimmer" />
@@ -224,7 +228,7 @@ export function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden bg-[#060d1a]/98 backdrop-blur-xl border-b border-white/[0.06]"
+            className="lg:hidden dark:bg-[#060d1a]/98 bg-white/98 backdrop-blur-xl border-b dark:border-white/[0.06] border-slate-200/80"
           >
             <div className="px-4 py-4 space-y-1">
               {navLinks.map((link) => (
@@ -253,6 +257,11 @@ export function Navbar() {
                 )
               ))}
               <div className="h-px bg-white/[0.06] my-3" />
+              {/* Theme toggle row */}
+              <div className="flex items-center justify-between px-4 py-2">
+                <span className="text-xs dark:text-slate-400 text-slate-500 font-medium">Appearance</span>
+                <ThemeToggle size="sm" />
+              </div>
               {user ? (
                 <>
                   <div className="flex items-center gap-3 px-4 py-3">
