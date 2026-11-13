@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from '@/components/providers';
+import Script from 'next/script';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -51,8 +52,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <Providers>{children}</Providers>
         {/* Tawk.to Live Chat */}
-        <script
-          type="text/javascript"
+        <Script
+          id="tawk-to-chat"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
