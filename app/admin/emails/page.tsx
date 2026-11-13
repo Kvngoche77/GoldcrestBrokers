@@ -100,6 +100,7 @@ export default function AdminEmailsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUserSelector, setShowUserSelector] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(-1);
+  const [replyTo, setReplyTo] = useState('');
   const [sentLog, setSentLog] = useState<{ to: string; subject: string; time: string }[]>([]);
 
   const { data: users = [] } = useQuery({
@@ -149,6 +150,7 @@ export default function AdminEmailsPage() {
               user_id: t.id,
               custom_subject: subject.trim(),
               custom_html: htmlBody.trim(),
+              reply_to: replyTo.trim() || undefined,
             }),
           })
         )
@@ -299,6 +301,21 @@ export default function AdminEmailsPage() {
               onChange={e => setSubject(e.target.value)}
               placeholder="Enter email subject"
               className="w-full px-4 py-3 bg-white/[0.05] border border-white/[0.1] rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 transition-all"
+            />
+          </div>
+
+          {/* Reply-To Email */}
+          <div>
+            <label className="text-xs text-slate-400 mb-1 flex items-center justify-between">
+              <span>Reply-To Email <span className="text-slate-500 font-normal">(where user replies should be sent)</span></span>
+              <span className="text-[11px] text-blue-400">Default: team@goldcrestbroker.com</span>
+            </label>
+            <input
+              type="email"
+              value={replyTo}
+              onChange={e => setReplyTo(e.target.value)}
+              placeholder="e.g. yourname@gmail.com (leave blank for default)"
+              className="w-full px-4 py-2.5 bg-white/[0.05] border border-white/[0.1] rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 transition-all"
             />
           </div>
 

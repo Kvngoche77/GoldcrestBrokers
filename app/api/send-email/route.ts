@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { type, user_id, user_email, user_name, amount, currency, status, tx_id, origin, custom_subject, custom_html } = await req.json();
+    const { type, user_id, user_email, user_name, amount, currency, status, tx_id, origin, custom_subject, custom_html, reply_to } = await req.json();
 
     const resendApiKey = process.env.RESEND_API_KEY;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -539,18 +539,26 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });
     }
 
+    const finalReplyTo = reply_to || process.env.SUPPORT_REPLY_TO_EMAIL || 'team@goldcrestbroker.com';
+
+    const emailPayload: Record<string, any> = {
+      from: 'Goldcrest Brokers <team@goldcrestbroker.com>', // Updated to verified domain
+      to: [finalEmail],
+      subject,
+      html,
+    };
+
+    if (finalReplyTo) {
+      emailPayload.reply_to = finalReplyTo;
+    }
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${resendApiKey}`,
       },
-      body: JSON.stringify({
-        from: 'Goldcrest Brokers <team@goldcrestbroker.com>', // Updated to verified domain
-        to: [finalEmail],
-        subject,
-        html,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     const data = await res.json();
