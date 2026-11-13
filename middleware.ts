@@ -50,12 +50,12 @@ export function middleware(request: NextRequest) {
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self), interest-cohort=()',
     'Content-Security-Policy': [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.tradingview.com https://translate.google.com https://translate.googleapis.com https://www.gstatic.com https://*.google.com https://translate-pa.googleapis.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://translate.googleapis.com",
-      "img-src 'self' blob: data: https://*.supabase.co https://*.tradingview.com https://*.google.com https://www.gstatic.com https://translate.google.com https://translate.googleapis.com",
-      "font-src 'self' data: https://fonts.gstatic.com https://www.gstatic.com",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tradingview.com https://translate.googleapis.com https://translate-pa.googleapis.com https://*.google.com",
-      "frame-src 'self' https://*.tradingview.com https://*.google.com https://translate.google.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.tradingview.com https://translate.google.com https://translate.googleapis.com https://www.gstatic.com https://*.google.com https://translate-pa.googleapis.com https://*.tawk.to https://embed.tawk.to",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com https://translate.googleapis.com https://*.tawk.to",
+      "img-src 'self' blob: data: https://*.supabase.co https://*.tradingview.com https://*.google.com https://www.gstatic.com https://translate.google.com https://translate.googleapis.com https://*.tawk.to",
+      "font-src 'self' data: https://fonts.gstatic.com https://www.gstatic.com https://*.tawk.to",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tradingview.com https://translate.googleapis.com https://translate-pa.googleapis.com https://*.google.com https://*.tawk.to wss://*.tawk.to",
+      "frame-src 'self' https://*.tradingview.com https://*.google.com https://translate.google.com https://*.tawk.to",
       "worker-src 'self' blob:",
     ].join('; '),
   };
